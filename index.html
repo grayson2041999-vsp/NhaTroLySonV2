@@ -2101,7 +2101,7 @@ function ntStartRealtime(){
   try{
     SB.channel('nt_notif_'+NT.user.id)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'nt_notifications',filter:'user_id=eq.'+NT.user.id},
-        ()=>{ NT_UNREAD++; ntSetBadge(NT_UNREAD); toast('🔔 Có cập nhật mới'); })
+        ()=>{ NT_UNREAD++; ntSetBadge(NT_UNREAD); toast('🔔 Có cập nhật mới'); scheduleDataRefresh(); })
       .subscribe();
   }catch(e){ console.warn('realtime',e); }
   ntStartDataRealtime();
