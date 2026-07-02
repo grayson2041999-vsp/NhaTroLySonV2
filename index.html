@@ -41,6 +41,22 @@ a{color:var(--primary)}
 .iconbtn:active{background:rgba(255,255,255,.32)}
 .refreshbtn.spin{animation:spin .8s linear infinite;pointer-events:none}
 svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;display:inline-block;flex:none}
+.iconbtn{position:relative}
+.topbadge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;background:#ef4444;color:#fff;border-radius:9px;font-size:11px;line-height:18px;padding:0 4px;font-weight:700;border:2px solid var(--primary-dark)}
+/* thanh tải trên cùng */
+.ntload{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#60a5fa,#0d6efd);z-index:60;opacity:0;border-radius:0 3px 3px 0}
+.ntload.on{opacity:1;width:85%;transition:width 8s cubic-bezier(.1,.7,.1,1)}
+.ntload.done{width:100%;opacity:0;transition:width .25s ease,opacity .35s .2s}
+/* thanh điều hướng dưới đáy */
+.bnav{position:fixed;left:0;right:0;bottom:0;max-width:960px;margin:0 auto;z-index:40;display:none;
+  background:var(--card);border-top:1px solid var(--border);box-shadow:0 -1px 8px rgba(0,0,0,.06);padding-bottom:env(safe-area-inset-bottom)}
+.bnav-on .bnav{display:flex}
+.bnav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 6px;color:var(--muted);font-size:10.5px;font-weight:600;line-height:1.1}
+.bnav-item svg.lucide{width:22px;height:22px;stroke-width:2}
+.bnav-item.active{color:var(--primary)}
+.bnav-item:active{background:var(--primary-light)}
+.bnav-on .content{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+.bnav-on .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 @keyframes spin{to{transform:rotate(360deg)}}
 .content{flex:1;padding:16px;padding-bottom:40px}
 
@@ -202,6 +218,8 @@ tr:last-child td{border-bottom:none}
 
 <div class="imgviewer" id="imgViewer" onclick="this.classList.remove('show')"></div>
 <div class="toast" id="toast"></div>
+<div class="ntload" id="ntLoad"></div>
+<nav class="bnav" id="bottomNav"></nav>
 
 <script>
 /* ============================================================
@@ -592,23 +610,25 @@ function render(){renderTopbar();renderTabs();const c=$('#content');
   else if(APP.screen==='cashadmin')renderCashAdmin(c);
   else if(APP.screen==='house')renderHouse(c);}
 
-function renderTopbar(){const tb=$('#topbar');
-  const refresh=``; /* bỏ nút mũi tên: dữ liệu tự cập nhật realtime */
-  if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${refresh}`;}
-  else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
-    <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${refresh}`;}
-  else if(APP.screen==='cashadmin'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
-    <div class="ttl">Quản trị dòng tiền<div class="sub">Người nhập · Tháng · Khoá</div></div>${refresh}`;}
-  else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
-    tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
-      <div class="ttl">${esc(h?h.name:'')}<div class="sub">${esc(h?h.address:'')}</div></div>${refresh}`;}
+function bellBtn(){
+  return NT.user?`<button class="iconbtn" aria-label="Thông báo" onclick="ntOpenNotifications()"><i data-lucide="bell"></i><span class="topbadge" id="ntBellCount"${NT_UNREAD>0?'':' style="display:none"'}>${NT_UNREAD>99?'99+':NT_UNREAD}</span></button>`:'';
 }
-function renderTabs(){const host=$('#tabsHost');
-  if(APP.screen!=='house'){host.innerHTML='';return;}
-  const primary=[['doanhthu','Doanh thu'],['chiphi','Chi phí'],['hopdong','Hợp đồng']];
-  const secondary=[['quyettoan','Quyết toán'],['thietbi','Thiết bị'],['thongke','Thống kê']];
-  const btn=([k,l],isPri)=>`<button class="tab ${isPri?'primary ':''}${APP.tab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`;
-  host.innerHTML=`<div class="tabs">${primary.map(t=>btn(t,true)).join('')}<span class="tab-sep"></span>${secondary.map(t=>btn(t,false)).join('')}</div>`;
+function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
+  if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${bell}`;}
+  else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
+    <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${bell}`;}
+  else if(APP.screen==='cashadmin'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
+    <div class="ttl">Quản trị dòng tiền<div class="sub">Người nhập · Tháng · Khoá</div></div>${bell}`;}
+  else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
+    tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
+      <div class="ttl">${esc(h?h.name:'')}<div class="sub">${esc(h?h.address:'')}</div></div>${bell}`;}
+}
+function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const nav=$('#bottomNav');
+  if(APP.screen!=='house'){document.body.classList.remove('bnav-on');if(nav)nav.innerHTML='';return;}
+  document.body.classList.add('bnav-on');
+  const items=[['doanhthu','Doanh thu','trending-up'],['chiphi','Chi phí','trending-down'],['hopdong','Hợp đồng','file-text'],
+    ['quyettoan','Quyết toán','calculator'],['thietbi','Thiết bị','wrench'],['thongke','Thống kê','bar-chart-3']];
+  nav.innerHTML=items.map(([k,l,ic])=>`<button class="bnav-item${APP.tab===k?' active':''}" onclick="setTab('${k}')"><i data-lucide="${ic}"></i><span>${l}</span></button>`).join('');
 }
 
 /* ---------- ENTRY ---------- */
@@ -1843,6 +1863,7 @@ async function doSync(isAuto){ try{ await flushOutbox(); await pullFromServer();
 async function pullFromServer(){
   if(!effectiveUrl())return false;
   if(getOutbox().length)return false; /* còn thao tác chờ gửi -> không ghi đè để tránh mất dữ liệu */
+  ntLoading(true);
   try{
     const data=await ntPullAll();
     if(data){
@@ -1851,6 +1872,7 @@ async function pullFromServer(){
       return true;
     }
   }catch(e){_suppressAuto=false;console.error('Tải dữ liệu lỗi:',e);}
+  finally{ ntLoading(false); }
   return false;
 }
 /* Nút "Tải mới": gửi thay đổi còn tồn -> kéo dữ liệu mới nhất về -> vẽ lại */
@@ -2075,20 +2097,9 @@ async function ntApplyOp(op){
 
 /* ---------- 4D: thông báo đỏ + realtime ---------- */
 let NT_UNREAD=0;
-function ntBadgeEl(){
-  let b=document.getElementById('ntBell');
-  if(!b){
-    b=document.createElement('button'); b.id='ntBell';
-    b.style.cssText='position:fixed;bottom:18px;right:16px;z-index:9000;width:52px;height:52px;border-radius:50%;border:0;background:#0d6efd;color:#fff;font-size:22px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer';
-    b.innerHTML='<i data-lucide="bell"></i><span id="ntBellCount" style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;background:#ef4444;color:#fff;border-radius:10px;font-size:12px;line-height:20px;padding:0 4px;display:none"></span>';
-    b.addEventListener('click',ntOpenNotifications);
-    document.body.appendChild(b);
-  }
-  return b;
-}
 function ntSetBadge(n){
-  const c=ntBadgeEl().querySelector('#ntBellCount');
-  if(n>0){c.textContent=n>99?'99+':n;c.style.display='block';}else{c.style.display='none';}
+  const c=document.getElementById('ntBellCount'); /* badge nằm trong chuông ở góc phải topbar */
+  if(c){ if(n>0){c.textContent=n>99?'99+':n;c.style.display='';} else {c.style.display='none';} }
   /* số đỏ trên ICON app ngoài màn hình chính (PWA đã cài) */
   try{ if('setAppBadge' in navigator){ if(n>0) navigator.setAppBadge(n); else navigator.clearAppBadge(); } }catch(e){}
 }
@@ -2099,7 +2110,7 @@ async function ntRefreshBadge(){
 function ntStartRealtime(){
   if(!NT.user)return;
   ntEnablePush(false); /* đăng ký nhận đẩy nếu chưa có */
-  ntBadgeEl(); ntRefreshBadge();
+  ntRefreshBadge();
   try{
     SB.channel('nt_notif_'+NT.user.id)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'nt_notifications',filter:'user_id=eq.'+NT.user.id},
@@ -2180,6 +2191,11 @@ async function ntEnablePush(force){
   }catch(e){ console.warn('Bật đẩy lỗi:',e); if(force)toast('Bật thông báo lỗi','err'); }
 }
 
+/* ---------- Thanh tải trên cùng ---------- */
+function ntLoading(on){ const el=document.getElementById('ntLoad'); if(!el)return;
+  if(on){ el.className='ntload'; void el.offsetWidth; el.className='ntload on'; }
+  else { el.className='ntload done'; setTimeout(()=>{ if(el.className==='ntload done') el.className='ntload'; },600); }
+}
 /* ---------- Lucide icons: tự vẽ lại mỗi khi giao diện đổi ---------- */
 let _licT=null;
 function ntIcons(){ clearTimeout(_licT); _licT=setTimeout(()=>{ try{ if(window.lucide) lucide.createIcons(); }catch(e){} }, 20); }
