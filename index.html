@@ -49,10 +49,12 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .ntload.done{width:100%;opacity:0;transition:width .25s ease,opacity .35s .2s}
 /* thanh điều hướng dưới đáy */
 .bnav{position:fixed;left:0;right:0;bottom:0;max-width:960px;margin:0 auto;z-index:40;display:none;
-  background:var(--card);border-top:1px solid var(--border);box-shadow:0 -1px 8px rgba(0,0,0,.06);padding-bottom:env(safe-area-inset-bottom)}
+  background:var(--card);border-top:1px solid var(--border);box-shadow:0 -1px 8px rgba(0,0,0,.06);
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}
 .bnav-on .bnav{display:flex}
-.bnav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 6px;color:var(--muted);font-size:10.5px;font-weight:600;line-height:1.1}
-.bnav-item svg.lucide{width:22px;height:22px;stroke-width:2}
+.bnav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.1;border-radius:12px}
+.bnav-item svg.lucide{width:26px;height:26px;stroke-width:2}
 .bnav-item.active{color:var(--primary)}
 .bnav-item:active{background:var(--primary-light)}
 .bnav-on .content{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
@@ -627,7 +629,7 @@ function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const 
   if(APP.screen!=='house'){document.body.classList.remove('bnav-on');if(nav)nav.innerHTML='';return;}
   document.body.classList.add('bnav-on');
   const items=[['doanhthu','Doanh thu','trending-up'],['chiphi','Chi phí','trending-down'],['hopdong','Hợp đồng','file-text'],
-    ['quyettoan','Quyết toán','calculator'],['thietbi','Thiết bị','wrench'],['thongke','Thống kê','bar-chart-3']];
+    ['quyettoan','Quyết toán','calculator'],['thongke','Thống kê','bar-chart-3']];
   nav.innerHTML=items.map(([k,l,ic])=>`<button class="bnav-item${APP.tab===k?' active':''}" onclick="setTab('${k}')"><i data-lucide="${ic}"></i><span>${l}</span></button>`).join('');
 }
 
@@ -797,22 +799,16 @@ function renderHouse(c){const h=STORE.house(APP.houseId);if(!h){goEntry();return
 /* ---------- TAB THỐNG KÊ ---------- */
 function setTkView(v){APP.tkView=v;render();}
 function renderTabThongKe(c){
-  c.innerHTML=`<div class="subbar">
-      <button class="btn sm ${APP.tkView==='dongtien'?'':'sec'}" onclick="setTkView('dongtien')">💵 Dòng tiền</button>
-      <button class="btn sm ${APP.tkView==='xe'?'':'sec'}" onclick="setTkView('xe')"><i data-lucide="car"></i> Quản lý xe</button>
-      <button class="btn sm ${APP.tkView==='cccd'?'':'sec'}" onclick="setTkView('cccd')">🪪 CCCD</button>
-      <button class="btn sm ${APP.tkView==='ketthuc'?'':'sec'}" onclick="setTkView('ketthuc')">🔚 Đã kết thúc</button>
+  const tk=(k,l)=>`<button class="tab ${APP.tkView===k?'active':''}" onclick="setTkView('${k}')">${l}</button>`;
+  c.innerHTML=`<div class="tabs" style="position:static;top:auto;border:none;background:none;padding:0 0 12px">
+      ${tk('dongtien','Dòng tiền')}${tk('xe','Quản lý xe')}${tk('cccd','CCCD')}${tk('thietbi','Thiết bị')}${tk('ketthuc','Đã kết thúc')}
     </div><div id="tkBody"></div>`;
-  const box=$('#tkBody',c);
-  if(APP.tkView==='dongtien'){
-    renderCashFlow(box);
-  }else if(APP.tkView==='cccd'){
-    renderCCCD(box);
-  }else if(APP.tkView==='ketthuc'){
-    renderEndedContracts(box);
-  }else{
-    renderVehicles(box);
-  }
+  const box=$('#tkBody',c);const h=STORE.house(APP.houseId);
+  if(APP.tkView==='dongtien'){ renderCashFlow(box); }
+  else if(APP.tkView==='cccd'){ renderCCCD(box); }
+  else if(APP.tkView==='thietbi'){ renderTabThietBi(box,h); }
+  else if(APP.tkView==='ketthuc'){ renderEndedContracts(box); }
+  else { renderVehicles(box); }
 }
 /* Thống kê hợp đồng đã kết thúc (lưu tối đa 6 tháng kể từ ngày kết thúc) */
 function renderEndedContracts(box){
