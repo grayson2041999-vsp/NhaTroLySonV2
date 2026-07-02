@@ -590,26 +590,13 @@ function sigSave(){if(!_sig.has){toast('Chưa có chữ ký','err');return;}cons
 function viewImg(src){const v=$('#imgViewer');v.innerHTML='';const img=new Image();img.src=src;v.appendChild(img);v.classList.add('show');}
 
 /* ---------- password gate ---------- */
-function requirePassword(house,actionLabel,cb){
-  openModal({title:'Nhập mật khẩu nhà',
-    bodyHTML:`<p class="muted" style="margin-top:0">Nhà <b>${esc(house.name)}</b> — ${esc(actionLabel)} cần mật khẩu.</p>
-      <div class="field"><label>Mật khẩu</label><input id="pwIn" type="password" autocomplete="off" placeholder="Mật khẩu nhà"></div>
-      <button class="linkbtn" id="pwHintBtn" type="button">Quên mật khẩu?</button>
-      <div id="pwHint" style="display:none;margin-top:8px" class="card">
-        <div class="kv"><span class="k">Câu hỏi gợi ý</span><span class="v">${esc(house.passwordHint||'—')}</span></div></div>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="pwOk">Xác nhận</button>`,
-    onMount:(m)=>{const inp=$('#pwIn',m);inp.focus();
-      $('#pwHintBtn',m).onclick=()=>{$('#pwHint',m).style.display='block';};
-      const go=()=>{if(inp.value===house.password){closeModal();cb();}else toast('Mật khẩu không đúng','err');};
-      $('#pwOk',m).onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();};}
-  });
-}
+/* Đã bỏ mật khẩu từng nhà (quyền do tài khoản đăng nhập quản lý) -> chạy thẳng hành động */
+function requirePassword(house,actionLabel,cb){ cb(); }
 
 /* ============================================================ RENDER ============================================================ */
 function render(){renderTopbar();renderTabs();const c=$('#content');
   if(APP.screen==='entry')renderEntry(c);
   else if(APP.screen==='system')renderSystem(c);
-  else if(APP.screen==='cashadmin')renderCashAdmin(c);
   else if(APP.screen==='house')renderHouse(c);}
 
 function bellBtn(){
@@ -619,8 +606,6 @@ function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
   if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${bell}`;}
   else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
     <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${bell}`;}
-  else if(APP.screen==='cashadmin'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
-    <div class="ttl">Quản trị dòng tiền<div class="sub">Người nhập · Tháng · Khoá</div></div>${bell}`;}
   else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
     tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
       <div class="ttl">${esc(h?h.name:'')}<div class="sub">${esc(h?h.address:'')}</div></div>${bell}`;}
@@ -636,10 +621,7 @@ function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const 
 /* ---------- ENTRY ---------- */
 function renderEntry(c){const houses=STORE.houses();
   c.innerHTML=`<div class="hero"><div class="logo"><i data-lucide="house"></i></div><h1>Nhà trọ Lý Sơn</h1><p>Quản lý nhà trọ &amp; ký túc xá</p></div>
-    <div class="row" style="margin-bottom:18px">
-      <button class="btn lg ghost" onclick="goSystem()"><i data-lucide="settings"></i> Quản lý hệ thống</button>
-      <button class="btn lg ghost" onclick="goCashAdmin()"><i data-lucide="wallet"></i> Quản trị dòng tiền</button>
-    </div>
+    <button class="btn lg ghost block" style="margin-bottom:18px" onclick="goSystem()"><i data-lucide="settings"></i> Quản lý hệ thống</button>
     <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()"><i data-lucide="user"></i> Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''} · Đồng bộ · Đăng xuất</button>
     <div class="sectitle">Chọn nhà để quản lý</div><div id="houseList"></div>`;
   const list=$('#houseList',c);
@@ -652,11 +634,25 @@ function renderEntry(c){const houses=STORE.houses();
 }
 
 /* ---------- SYSTEM ---------- */
-function renderSystem(c){const houses=STORE.houses();
-  c.innerHTML=`<button class="btn lg block" style="margin-bottom:16px" onclick="houseForm()"><i data-lucide="plus"></i> Thêm nhà mới</button><div id="sysList"></div>`;
+function renderSystem(c){const houses=STORE.houses();const am=STORE.activeMonth();
+  c.innerHTML=`<button class="btn lg block" style="margin-bottom:16px" onclick="houseForm()"><i data-lucide="plus"></i> Thêm nhà mới</button>
+    <div class="card">
+      <div class="sectitle" style="margin-top:0">Tháng đang thao tác</div>
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="margin:0"><label>Tháng/năm (MM/YYYY)</label>
+          <input id="amInput" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(am))}"></div>
+        <button class="btn" style="flex:0 0 auto" onclick="saveActiveMonth()">Lưu tháng</button>
+      </div>
+      <div class="hint">Doanh thu / chi phí sẽ được nhập vào tháng này.</div>
+    </div>
+    <div class="sectitle">Danh sách nhà</div>
+    <div id="sysList"></div>
+    <div class="card" style="margin-top:14px">
+      <div class="sectitle" style="margin-top:0">Khoá tháng theo nhà ${am?`(${esc(isoToMy(am))})`:''}</div>
+      <div id="lockList"></div>
+    </div>`;
   const list=$('#sysList',c);
-  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;return;}
-  list.innerHTML=houses.map(h=>`<div class="card">
+  list.innerHTML=houses.length?houses.map(h=>`<div class="card">
     <div class="hcard" style="cursor:default"><div class="av"><i data-lucide="house"></i></div>
       <div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div></div>
     <div style="margin:10px 0 12px"><span class="badge ktx">${h.rooms.filter(r=>r.type==='KTX').length} KTX</span>
@@ -666,7 +662,15 @@ function renderSystem(c){const houses=STORE.houses();
     <div class="row">
       <button class="btn sec sm" onclick="requirePassword(STORE.house('${h.id}'),'Chỉnh sửa nhà',()=>houseForm('${h.id}'))"><i data-lucide="pencil"></i> Sửa</button>
       <button class="btn danger sm" onclick="requirePassword(STORE.house('${h.id}'),'Xoá nhà',()=>confirmDeleteHouse('${h.id}'))"><i data-lucide="trash-2"></i> Xoá</button>
-    </div></div>`).join('');
+    </div></div>`).join(''):`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;
+  const lb=$('#lockList',c);
+  lb.innerHTML=!am?`<div class="muted">Hãy chọn tháng ở trên.</div>`
+    :(!houses.length?`<div class="muted">Chưa có nhà nào.</div>`
+    :houses.map(h=>{const locked=(h.lockedMonths||[]).includes(am);
+      return `<div class="kv"><span class="k">${esc(h.name)}</span><span class="v">
+        ${locked?'<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>'
+                :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
+      </span></div>`;}).join(''));
 }
 function confirmDeleteHouse(id){const h=STORE.house(id);
   openModal({title:'Xoá nhà',bodyHTML:`<p>Bạn chắc chắn xoá nhà <b>${esc(h.name)}</b> và toàn bộ hợp đồng? Không thể hoàn tác.</p>`,
@@ -1183,74 +1187,10 @@ function saveContract(type,editing){
   closeModal();toast('Đã lưu hợp đồng','ok');render();
 }
 
-/* ============================================================ DÒNG TIỀN (USER · THÁNG · KHOÁ · THU/CHI) ============================================================ */
-function getCurUser(){return localStorage.getItem('nhaTroLySon_curuser')||'';}
-function setCurUser(id){localStorage.setItem('nhaTroLySon_curuser',id||'');}
-function curUserName(){const u=(STORE.users()||[]).find(x=>x.id===getCurUser());return u?u.name:'';}
-function pushSettings(){enqueueOp({entity:'settings',type:'set',users:STORE.users(),activeMonth:STORE.activeMonth()});}
-function goCashAdmin(){APP.screen='cashadmin';scrollTop();render();}
-
-/* ----- Trang Quản trị dòng tiền ----- */
-function renderCashAdmin(c){
-  const users=STORE.users()||[];const houses=STORE.houses();const am=STORE.activeMonth();const cur=getCurUser();
-  c.innerHTML=`
-    <div class="card">
-      <div class="sectitle" style="margin-top:0">Bạn là (người nhập)</div>
-      <select id="curUserSel" onchange="setCurUser(this.value);toast('Đã chọn người nhập','ok')">
-        <option value="">— Chọn tên bạn —</option>
-        ${users.map(u=>`<option value="${u.id}" ${cur===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
-      </select>
-      <div class="hint">Tên này tự gắn vào các khoản bạn nhập. Lưu theo máy.</div>
-    </div>
-    <div class="card">
-      <div class="sectitle" style="margin-top:0">Danh sách người nhập (user)</div>
-      <div id="userList"></div>
-      <button class="btn ghost sm" onclick="addUser()"><i data-lucide="plus"></i> Thêm người nhập</button>
-    </div>
-    <div class="card">
-      <div class="sectitle" style="margin-top:0">Tháng đang nhập</div>
-      <div class="row" style="align-items:flex-end">
-        <div class="field" style="margin:0"><label>Tháng/năm (MM/YYYY)</label>
-          <input id="amInput" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(am))}"></div>
-        <button class="btn" style="flex:0 0 auto" onclick="saveActiveMonth()">Lưu tháng</button>
-      </div>
-      <div class="hint">User sẽ nhập doanh thu/chi phí vào tháng này.</div>
-    </div>
-    <div class="card">
-      <div class="sectitle" style="margin-top:0">Khoá tháng theo nhà ${am?`(${esc(isoToMy(am))})`:''}</div>
-      ${!am?`<div class="muted">Hãy chọn tháng đang nhập ở trên.</div>`:
-        (!houses.length?`<div class="muted">Chưa có nhà nào.</div>`:
-        houses.map(h=>{const locked=(h.lockedMonths||[]).includes(am);
-          return `<div class="kv"><span class="k">${esc(h.name)}</span><span class="v">
-            ${locked?'<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>'
-                    :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
-          </span></div>`;}).join(''))}
-    </div>`;
-  _loadUsersDraft();   // luôn nạp bản nháp từ dữ liệu đã lưu để sửa tên hoạt động ngay khi mở trang
-  renderUserList();
-}
-function renderUserList(){const box=$('#userList');if(!box)return;const users=STORE.users()||[];
-  if(!window.__users)_loadUsersDraft();
-  box.innerHTML=users.length?users.map((u,i)=>`<div class="chiprow">
-    <input style="flex:1" value="${esc(u.name)}" placeholder="Tên người nhập" oninput="if(window.__users[${i}])window.__users[${i}].name=this.value" onchange="commitUsers()">
-    <button class="delx" type="button" onclick="removeUser(${i})"><i data-lucide="trash-2"></i></button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có ai</div>`;
-}
-/* Lưu danh sách người nhập (sau khi sửa tên) vào máy + đồng bộ lên Sheet/Drive. KHÔNG render lại để không mất con trỏ. */
-function commitUsers(){
-  if(!window.__users)_loadUsersDraft();
-  syncUsersDom();
-  STORE.setUsers(window.__users.map(u=>({id:u.id,name:(u.name||'').trim()})).filter(u=>u.name));
-  pushSettings();
-  toast('Đã lưu người nhập','ok');
-}
-function _loadUsersDraft(){window.__users=(STORE.users()||[]).map(u=>({...u}));}
-function addUser(){_loadUsersDraft();syncUsersDom();window.__users.push({id:uid(),name:''});STORE.setUsers(window.__users);pushSettings();render();}
-function removeUser(i){_loadUsersDraft();syncUsersDom();window.__users.splice(i,1);STORE.setUsers(window.__users);pushSettings();render();}
-function syncUsersDom(){const box=$('#userList');if(!box||!window.__users)return;box.querySelectorAll('input').forEach((el,i)=>{if(window.__users[i])window.__users[i].name=el.value;});}
+/* ============================================================ THÁNG · KHOÁ ============================================================ */
+function pushSettings(){enqueueOp({entity:'settings',type:'set',activeMonth:STORE.activeMonth()});}
 function saveActiveMonth(){const m=myToIso($('#amInput').value);if(m===null){toast('Tháng/năm không hợp lệ (MM/YYYY)','err');return;}
-  // lưu tên user đang gõ trước khi render
-  if(window.__users){syncUsersDom();STORE.setUsers(window.__users.map(u=>({id:u.id,name:(u.name||'').trim()})).filter(u=>u.name));}
-  STORE.setActiveMonth(m);pushSettings();toast('Đã đặt tháng đang nhập','ok');render();}
+  STORE.setActiveMonth(m);pushSettings();toast('Đã đặt tháng thao tác','ok');render();}
 function lockMonth(id){const h=STORE.house(id);h.lockedMonths=h.lockedMonths||[];const am=STORE.activeMonth();
   if(!h.lockedMonths.includes(am))h.lockedMonths.push(am);STORE.save();enqueueHouseUpsert(id);toast('Đã khoá tháng','ok');render();}
 function unlockMonth(id){const h=STORE.house(id);requirePassword(h,'Mở khoá tháng',()=>{const am=STORE.activeMonth();
@@ -1279,8 +1219,8 @@ function financeTargets(h){const out=[];const sm=shortNameMap(h);
 /* ----- Tab Doanh thu / Chi phí ----- */
 function renderFinanceTab(c,h,kind){
   const am=STORE.activeMonth();const title=kind==='thu'?'Doanh thu':'Chi phí';
-  if(!am){c.innerHTML=`<div class="placeholder-tab"><div class="ic"><i data-lucide="calendar"></i></div><h2 style="margin:0 0 6px">${title}</h2><p>Chưa chọn tháng đang nhập.<br>Vào <b>Quản trị dòng tiền</b> để chọn tháng.</p>
-    <button class="btn ghost" style="margin-top:10px" onclick="goCashAdmin()">Mở Quản trị dòng tiền</button></div>`;return;}
+  if(!am){c.innerHTML=`<div class="placeholder-tab"><div class="ic"><i data-lucide="calendar"></i></div><h2 style="margin:0 0 6px">${title}</h2><p>Chưa chọn tháng thao tác.<br>Vào <b>Quản lý hệ thống</b> để chọn tháng.</p>
+    <button class="btn ghost" style="margin-top:10px" onclick="goSystem()">Mở Quản lý hệ thống</button></div>`;return;}
   const locked=(h.lockedMonths||[]).includes(am);
   const allList=(h.finance||[]).filter(e=>e.month===am&&e.kind===kind);
   // Lọc theo người nhập (cột "Nhập"): rỗng = hiển thị tất cả
@@ -1340,7 +1280,7 @@ function setFinFilter(idx){APP.finFilter=idx<0?'':((window._finPeople||[])[idx]|
 function clearFinFilter(){APP.finFilter='';render();}
 function financeForm(kind,id){
   const h=STORE.house(APP.houseId);const am=STORE.activeMonth();
-  if(!getCurUser()){toast('Hãy chọn "Bạn là" trong Quản trị dòng tiền','err');return;}
+  if(!getCurUser()){toast('Chưa xác định người dùng — hãy đăng nhập lại','err');return;}
   const editing=!!id;const e=editing?JSON.parse(JSON.stringify((h.finance||[]).find(x=>x.id===id))):{id:uid(),kind,month:am,targetKey:'',label:'',amount:'',note:''};
   const title=kind==='thu'?'doanh thu':'chi phí';
   let body;
