@@ -135,6 +135,13 @@ th{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.3p
 tr:last-child td{border-bottom:none}
 .dev-table{min-width:0;width:100%;table-layout:fixed}
 .dev-table .d-cost{white-space:nowrap;text-align:right}
+/* Bảng Hợp đồng: vừa khít bề ngang, không cuộn ngang */
+.hd-table{min-width:0;width:100%;table-layout:fixed}
+.hd-table th,.hd-table td{word-break:break-word;vertical-align:top}
+.hd-table .c-stt{width:30px;text-align:center;padding-left:4px;padding-right:4px}
+.hd-table .c-cccd{width:112px}
+.hd-table .c-phone{width:96px}
+.hd-table .c-act{width:52px}
 /* ===== Bảng Doanh thu/Chi phí: tối ưu cột trên điện thoại (không ảnh hưởng máy tính) ===== */
 @media (max-width:640px){
   .fin-table{min-width:0;width:100%;table-layout:fixed}
@@ -157,6 +164,10 @@ tr:last-child td{border-bottom:none}
   .dev-table .d-date{width:64px}
   .dev-table .d-cost{width:74px}
   .dev-table .d-act{width:52px}
+  .hd-table th,.hd-table td{padding:8px 5px;font-size:13px}
+  .hd-table .c-cccd{width:92px}
+  .hd-table .c-phone{width:80px}
+  .hd-table .c-act{width:46px}
 }
 .roomhead td{background:var(--primary-light);font-weight:700;color:var(--primary-dark)}
 .linkbtn{background:none;border:none;color:var(--primary);font-weight:600;text-decoration:underline;padding:0}
@@ -1000,12 +1011,12 @@ function renderContractTable(box,h){
   const byRoom={};people.forEach(p=>{(byRoom[p.roomName]=byRoom[p.roomName]||[]).push(p);});
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
-  roomNames.forEach(rn=>{rows+=`<tr class="roomhead"><td colspan="6"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${byRoom[rn].length} người</td></tr>`;
-    byRoom[rn].forEach((p,i)=>{rows+=`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${esc(p.cccd||'—')}</td>
-      <td>${esc(p.phone||'—')}</td><td>${esc(p.roomName)}</td>
-      <td><button class="linkbtn" onclick="showPersonInfo('${p.ctId}')">Xem thêm</button></td></tr>`;});});
+  roomNames.forEach(rn=>{rows+=`<tr class="roomhead"><td colspan="5"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${byRoom[rn].length} người</td></tr>`;
+    byRoom[rn].forEach((p,i)=>{rows+=`<tr><td class="c-stt">${i+1}</td><td>${esc(p.name)}</td><td class="c-cccd">${esc(p.cccd||'—')}</td>
+      <td class="c-phone">${esc(p.phone||'—')}</td>
+      <td class="c-act"><button class="linkbtn" onclick="showPersonInfo('${p.ctId}')">Xem</button></td></tr>`;});});
   box.innerHTML=`<div class="muted" style="margin-bottom:10px">Tổng: <b>${people.length}</b> người · <b>${contracts.length}</b> hợp đồng</div>
-    <div class="tablewrap"><table><thead><tr><th>STT</th><th>Họ và tên</th><th>CCCD</th><th>SĐT</th><th>Số phòng</th><th>Khác</th></tr></thead>
+    <div class="tablewrap"><table class="hd-table"><thead><tr><th class="c-stt">#</th><th>Họ và tên</th><th class="c-cccd">CCCD</th><th class="c-phone">SĐT</th><th class="c-act">Khác</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
