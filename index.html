@@ -2118,8 +2118,18 @@ function ntStartDataRealtime(){
     ch.subscribe();
   }catch(e){ console.warn('data realtime',e); }
 }
+async function ntClearNotifications(){
+  try{
+    const r=await SB.from('nt_notifications').delete().eq('user_id',NT.user.id); if(r.error)throw r.error;
+    NT_UNREAD=0; ntSetBadge(0);
+    const box=document.getElementById('ntNotifList'); if(box)box.innerHTML='<div class="empty">Chưa có thông báo</div>';
+    toast('Đã xóa tất cả thông báo','ok');
+  }catch(e){ console.warn('clear notif',e); toast('Không xóa được: '+(e&&e.message?e.message:e),'err'); }
+}
 async function ntOpenNotifications(){
-  openModal({title:'Thông báo', bodyHTML:'<div id="ntNotifList" style="max-height:60vh;overflow:auto">Đang tải…</div>',
+  openModal({title:'Thông báo',
+    bodyHTML:`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="linkbtn" onclick="ntClearNotifications()"><i data-lucide="trash-2"></i> Xóa tất cả</button></div>
+      <div id="ntNotifList" style="max-height:60vh;overflow:auto">Đang tải…</div>`,
     footHTML:'<button class="btn sec" onclick="closeModal()">Đóng</button>'});
   try{
     const {data,error}=await SB.from('nt_notifications')
