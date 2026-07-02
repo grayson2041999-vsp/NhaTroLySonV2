@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Nhà trọ Lý Sơn">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.400.0/dist/umd/lucide.min.js"></script>
 <style>
 :root{
   --primary:#0d6efd; --primary-dark:#0a58ca; --primary-light:#e7f1ff;
@@ -39,6 +40,7 @@ a{color:var(--primary)}
   font-size:18px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .iconbtn:active{background:rgba(255,255,255,.32)}
 .refreshbtn.spin{animation:spin .8s linear infinite;pointer-events:none}
+svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;display:inline-block;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 .content{flex:1;padding:16px;padding-bottom:40px}
 
@@ -389,11 +391,11 @@ function imgField(key,label,valObj){
   const pid='prev_'+key.replace(/:/g,'_');
   const isCccd=/cccdPhoto$/.test(key);
   const btns=isCccd
-    ? `<button type="button" class="btn sec sm" onclick="openCccdCamera('${key}')">📷 Chụp CCCD</button>
-       <label class="btn sec sm">🖼️ Chọn ảnh<input type="file" accept="image/*" data-imgkey="${key}" data-crop="cccd" hidden></label>
+    ? `<button type="button" class="btn sec sm" onclick="openCccdCamera('${key}')"><i data-lucide="camera"></i> Chụp CCCD</button>
+       <label class="btn sec sm"><i data-lucide="image"></i> Chọn ảnh<input type="file" accept="image/*" data-imgkey="${key}" data-crop="cccd" hidden></label>
        <input type="file" accept="image/*" capture="environment" data-imgkey="${key}" data-crop="cccd" id="fbcap_${pid}" hidden>`
-    : `<label class="btn sec sm">📷 Chụp<input type="file" accept="image/*" capture="environment" data-imgkey="${key}" hidden></label>
-       <label class="btn sec sm">🖼️ Chọn ảnh<input type="file" accept="image/*" data-imgkey="${key}" hidden></label>`;
+    : `<label class="btn sec sm"><i data-lucide="camera"></i> Chụp<input type="file" accept="image/*" capture="environment" data-imgkey="${key}" hidden></label>
+       <label class="btn sec sm"><i data-lucide="image"></i> Chọn ảnh<input type="file" accept="image/*" data-imgkey="${key}" hidden></label>`;
   return `<div class="field"><label>${label} <span class="muted" style="font-weight:400;font-size:12px">(nếu có)</span></label>
     <div class="imgslot" id="${pid}">${imgSlotInner(imgSrc(valObj))}</div>
     <div class="imgbtns">${btns}</div>
@@ -462,7 +464,7 @@ async function openCccdCamera(key){
         <div id="camFrame" style="position:absolute;left:5%;width:90%;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.45);border-radius:8px;pointer-events:none"></div>
       </div>
       <div class="hint" style="margin-top:8px;text-align:center">Đặt CCCD nằm ngang, vừa khít khung trắng rồi bấm Chụp</div>`,
-    footHTML:`<button class="btn sec" onclick="closeModal2()">Huỷ</button><button class="btn" onclick="captureCccd('${key}')">📸 Chụp</button>`,
+    footHTML:`<button class="btn sec" onclick="closeModal2()">Huỷ</button><button class="btn" onclick="captureCccd('${key}')"><i data-lucide="camera"></i> Chụp</button>`,
     onMount:()=>{
       const v=document.getElementById('camVideo');v.srcObject=stream;window._cccdStream=stream;
       function layoutFrame(){const fr=document.getElementById('camFrame');if(!fr||!v.clientWidth)return;const w=v.clientWidth*0.9;const h=w/CCCD_RATIO;fr.style.height=h+'px';fr.style.top=Math.max(0,(v.clientHeight-h)/2)+'px';}
@@ -593,12 +595,12 @@ function render(){renderTopbar();renderTabs();const c=$('#content');
 function renderTopbar(){const tb=$('#topbar');
   const refresh=``; /* bỏ nút mũi tên: dữ liệu tự cập nhật realtime */
   if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${refresh}`;}
-  else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()">‹</button>
+  else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
     <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${refresh}`;}
-  else if(APP.screen==='cashadmin'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()">‹</button>
+  else if(APP.screen==='cashadmin'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
     <div class="ttl">Quản trị dòng tiền<div class="sub">Người nhập · Tháng · Khoá</div></div>${refresh}`;}
   else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
-    tb.innerHTML=`<button class="iconbtn" onclick="goEntry()">‹</button>
+    tb.innerHTML=`<button class="iconbtn" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
       <div class="ttl">${esc(h?h.name:'')}<div class="sub">${esc(h?h.address:'')}</div></div>${refresh}`;}
 }
 function renderTabs(){const host=$('#tabsHost');
@@ -611,37 +613,37 @@ function renderTabs(){const host=$('#tabsHost');
 
 /* ---------- ENTRY ---------- */
 function renderEntry(c){const houses=STORE.houses();
-  c.innerHTML=`<div class="hero"><div class="logo">🏠</div><h1>Nhà trọ Lý Sơn</h1><p>Quản lý nhà trọ &amp; ký túc xá</p></div>
+  c.innerHTML=`<div class="hero"><div class="logo"><i data-lucide="house"></i></div><h1>Nhà trọ Lý Sơn</h1><p>Quản lý nhà trọ &amp; ký túc xá</p></div>
     <div class="row" style="margin-bottom:18px">
-      <button class="btn lg ghost" onclick="goSystem()">⚙️ Quản lý hệ thống</button>
-      <button class="btn lg ghost" onclick="goCashAdmin()">💰 Quản trị dòng tiền</button>
+      <button class="btn lg ghost" onclick="goSystem()"><i data-lucide="settings"></i> Quản lý hệ thống</button>
+      <button class="btn lg ghost" onclick="goCashAdmin()"><i data-lucide="wallet"></i> Quản trị dòng tiền</button>
     </div>
-    <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()">👤 Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''} · Đồng bộ · Đăng xuất</button>
+    <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()"><i data-lucide="user"></i> Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''} · Đồng bộ · Đăng xuất</button>
     <div class="sectitle">Chọn nhà để quản lý</div><div id="houseList"></div>`;
   const list=$('#houseList',c);
-  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic">🏚️</div>Chưa có nhà nào.<br>Vào <b>Quản lý hệ thống</b> để thêm nhà.</div>`;return;}
+  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.<br>Vào <b>Quản lý hệ thống</b> để thêm nhà.</div>`;return;}
   list.innerHTML=houses.map(h=>`<div class="card hcard" onclick="enterHouse('${h.id}')">
-    <div class="av">🏠</div><div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div>
+    <div class="av"><i data-lucide="house"></i></div><div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div>
       <div style="margin-top:4px"><span class="badge ktx">${h.rooms.filter(r=>r.type==='KTX').length} KTX</span>
         <span class="badge tro">${h.rooms.filter(r=>r.type==='TRO').length} phòng trọ</span></div></div>
-    <div class="chev">›</div></div>`).join('');
+    <div class="chev"><i data-lucide="chevron-right"></i></div></div>`).join('');
 }
 
 /* ---------- SYSTEM ---------- */
 function renderSystem(c){const houses=STORE.houses();
-  c.innerHTML=`<button class="btn lg block" style="margin-bottom:16px" onclick="houseForm()">＋ Thêm nhà mới</button><div id="sysList"></div>`;
+  c.innerHTML=`<button class="btn lg block" style="margin-bottom:16px" onclick="houseForm()"><i data-lucide="plus"></i> Thêm nhà mới</button><div id="sysList"></div>`;
   const list=$('#sysList',c);
-  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic">🏚️</div>Chưa có nhà nào.</div>`;return;}
+  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;return;}
   list.innerHTML=houses.map(h=>`<div class="card">
-    <div class="hcard" style="cursor:default"><div class="av">🏠</div>
+    <div class="hcard" style="cursor:default"><div class="av"><i data-lucide="house"></i></div>
       <div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div></div>
     <div style="margin:10px 0 12px"><span class="badge ktx">${h.rooms.filter(r=>r.type==='KTX').length} KTX</span>
       <span class="badge tro">${h.rooms.filter(r=>r.type==='TRO').length} phòng trọ</span>
       <span class="badge warn">HĐ: ${fmtMonthVi(h.contractStart)} – ${fmtMonthVi(h.contractEnd)}</span>
       ${imgHas(h.manager&&h.manager.signature)?'<span class="badge ok">Đã ký QL</span>':''}</div>
     <div class="row">
-      <button class="btn sec sm" onclick="requirePassword(STORE.house('${h.id}'),'Chỉnh sửa nhà',()=>houseForm('${h.id}'))">✏️ Sửa</button>
-      <button class="btn danger sm" onclick="requirePassword(STORE.house('${h.id}'),'Xoá nhà',()=>confirmDeleteHouse('${h.id}'))">🗑️ Xoá</button>
+      <button class="btn sec sm" onclick="requirePassword(STORE.house('${h.id}'),'Chỉnh sửa nhà',()=>houseForm('${h.id}'))"><i data-lucide="pencil"></i> Sửa</button>
+      <button class="btn danger sm" onclick="requirePassword(STORE.house('${h.id}'),'Xoá nhà',()=>confirmDeleteHouse('${h.id}'))"><i data-lucide="trash-2"></i> Xoá</button>
     </div></div>`).join('');
 }
 function confirmDeleteHouse(id){const h=STORE.house(id);
@@ -663,7 +665,7 @@ function houseForm(id){
       <div class="field"><label>Địa chỉ</label><input id="f_addr" value="${esc(h.address)}" placeholder="Số nhà, đường, phường…"></div>
       <div class="sectitle">Danh sách phòng</div>
       <div id="roomList" class="inline-list"></div>
-      <button class="btn ghost sm" type="button" onclick="addRoomRow()">＋ Thêm phòng</button>
+      <button class="btn ghost sm" type="button" onclick="addRoomRow()"><i data-lucide="plus"></i> Thêm phòng</button>
       <div class="sectitle">Người quản lý hợp đồng</div>
       <div class="grid2"><div class="field"><label>Họ và tên</label><input id="f_mgr" value="${esc(h.manager.name)}"></div>
         <div class="field"><label>Năm sinh</label><input id="f_mgryob" inputmode="numeric" value="${esc(h.manager.birthYear)}" placeholder="VD: 1985"></div></div>
@@ -677,11 +679,11 @@ function houseForm(id){
       <div class="sectitle">Điều khoản hợp đồng KTX</div>
       <div class="muted" style="font-size:12px;margin:-4px 2px 8px">Các mục nhỏ dưới đây sẽ tự đưa vào hợp đồng khi xuất PDF.</div>
       <div class="field" style="margin-bottom:8px"><label>Điều 4 — Quyền và nghĩa vụ của Bên A</label>
-        <div id="dieu4List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu4')">＋ Thêm mục</button></div>
+        <div id="dieu4List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu4')"><i data-lucide="plus"></i> Thêm mục</button></div>
       <div class="field" style="margin-bottom:8px"><label>Điều 5 — Quyền và nghĩa vụ của Bên B</label>
-        <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')">＋ Thêm mục</button></div>
+        <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')"><i data-lucide="plus"></i> Thêm mục</button></div>
       <div class="field"><label>Điều 6 — Thỏa thuận khác</label>
-        <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')">＋ Thêm mục</button></div>
+        <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')"><i data-lucide="plus"></i> Thêm mục</button></div>
       <div class="sectitle">Bảo mật</div>
       <div class="field"><label>Mật khẩu của nhà <span class="req">*</span></label><input id="f_pw" type="text" value="${esc(h.password)}" placeholder="Mật khẩu để sửa/xoá nhà"></div>
       <div class="field"><label>Câu hỏi gợi ý mật khẩu</label><input id="f_hint" value="${esc(h.passwordHint)}" placeholder="VD: Tên thú cưng đầu tiên?"></div>`,
@@ -706,15 +708,15 @@ function renderRoomRows(){const box=$('#roomList');if(!box)return;
         ${r.equipment.map((e,j)=>`<div class="chiprow">
           <input style="flex:2" data-rm="${i}" data-eqj="${j}" data-fld="name" value="${esc(e.name||'')}" placeholder="Tên đồ dùng">
           <input style="flex:1.6" data-rm="${i}" data-eqj="${j}" data-fld="cond" value="${esc(e.condition||'')}" placeholder="Tình trạng">
-          <button class="delx" type="button" onclick="removeEquip(${i},${j})">🗑️</button></div>`).join('')}
-        <button class="btn ghost sm" type="button" onclick="addEquip(${i})">＋ Thêm đồ dùng</button></div>`:'';
+          <button class="delx" type="button" onclick="removeEquip(${i},${j})"><i data-lucide="trash-2"></i></button></div>`).join('')}
+        <button class="btn ghost sm" type="button" onclick="addEquip(${i})"><i data-lucide="plus"></i> Thêm đồ dùng</button></div>`:'';
     return `<div class="inline-list">
       <div class="chiprow">
         <input style="flex:2" data-rm="${i}" data-fld="rname" value="${esc(r.name)}" placeholder="Tên phòng">
         <select style="flex:1.3" data-rm="${i}" data-fld="rtype">
           <option value="KTX" ${r.type==='KTX'?'selected':''}>Phòng KTX</option>
           <option value="TRO" ${r.type==='TRO'?'selected':''}>Phòng trọ</option></select>
-        <button class="delx" type="button" onclick="removeRoomRow(${i})">🗑️</button>
+        <button class="delx" type="button" onclick="removeRoomRow(${i})"><i data-lucide="trash-2"></i></button>
       </div>
       <button class="linkbtn" type="button" style="margin-top:6px" onclick="toggleRoom(${i})">${r._open?'▴ Thu gọn':'▾ Chi tiết (đồ dùng, số người)'}</button>
       ${detail}</div>`;
@@ -737,7 +739,7 @@ function removeRoomRow(i){syncRoomDom();window._roomDraft.splice(i,1);renderRoom
 function renderDieu(which){const box=$('#'+which+'List');if(!box)return;const arr=window._houseDraft[which]||[];
   box.innerHTML=(arr.length?arr.map((t,i)=>`<div class="chiprow" style="align-items:flex-start">
     <textarea style="flex:1;min-height:64px;resize:vertical;line-height:1.4;padding:10px 12px" rows="2" data-dieu="${which}" data-di="${i}" placeholder="Nội dung mục (Enter để xuống dòng)">${esc(t)}</textarea>
-    <button class="delx" type="button" onclick="removeDieu('${which}',${i})">🗑️</button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có mục nào</div>`);}
+    <button class="delx" type="button" onclick="removeDieu('${which}',${i})"><i data-lucide="trash-2"></i></button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có mục nào</div>`);}
 function addDieu(which){syncDieuDom();(window._houseDraft[which]=window._houseDraft[which]||[]).push('');renderDieu(which);}
 function removeDieu(which,i){syncDieuDom();window._houseDraft[which].splice(i,1);renderDieu(which);}
 function saveHouseForm(id,editing){
@@ -777,7 +779,7 @@ function setTkView(v){APP.tkView=v;render();}
 function renderTabThongKe(c){
   c.innerHTML=`<div class="subbar">
       <button class="btn sm ${APP.tkView==='dongtien'?'':'sec'}" onclick="setTkView('dongtien')">💵 Dòng tiền</button>
-      <button class="btn sm ${APP.tkView==='xe'?'':'sec'}" onclick="setTkView('xe')">🚗 Quản lý xe</button>
+      <button class="btn sm ${APP.tkView==='xe'?'':'sec'}" onclick="setTkView('xe')"><i data-lucide="car"></i> Quản lý xe</button>
       <button class="btn sm ${APP.tkView==='cccd'?'':'sec'}" onclick="setTkView('cccd')">🪪 CCCD</button>
       <button class="btn sm ${APP.tkView==='ketthuc'?'':'sec'}" onclick="setTkView('ketthuc')">🔚 Đã kết thúc</button>
     </div><div id="tkBody"></div>`;
@@ -829,11 +831,11 @@ function renderCashFlow(box){
       <tfoot><tr style="font-weight:700"><td>Tổng</td><td>${money(totRev)}</td><td>${money(totCost)}</td><td style="color:${totProfit>=0?'#16a34a':'var(--danger)'}">${money(totProfit)}</td><td></td></tr></tfoot>
       </table></div>`;
   }else{
-    rows=`<div class="empty"><div class="ic">💵</div>Chưa có dữ liệu dòng tiền.<br>Bấm “＋ Thêm tháng” hoặc “⚡ Tự động điền tháng đã chốt”.</div>`;
+    rows=`<div class="empty"><div class="ic">💵</div>Chưa có dữ liệu dòng tiền.<br>Bấm “<i data-lucide="plus"></i> Thêm tháng” hoặc “⚡ Tự động điền tháng đã chốt”.</div>`;
   }
   box.innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button class="btn sm" onclick="cfForm()">＋ Thêm tháng</button>
+      <button class="btn sm" onclick="cfForm()"><i data-lucide="plus"></i> Thêm tháng</button>
       <button class="btn sm sec" onclick="cfAutoFill()">⚡ Tự động điền tháng đã chốt${lockedCount?` (${lockedCount})`:''}</button>
     </div>
     ${cf.length?`<div class="card" style="margin-bottom:12px">
@@ -922,7 +924,7 @@ function renderCCCD(box){
   let rows='';
   roomNames.forEach(rn=>{
     const list=byRoom[rn].sort((a,b)=>a.name.localeCompare(b.name,'vi'));
-    rows+=`<tr class="roomhead"><td colspan="3">🏠 Phòng ${esc(rn)} — ${list.length} khách</td></tr>`;
+    rows+=`<tr class="roomhead"><td colspan="3"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${list.length} khách</td></tr>`;
     list.forEach((v,i)=>{const cell=v.src?`<img src="${v.src}" style="height:48px;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewImg(this.src)">`:`<span class="badge danger">Chưa nhập</span>`;
       rows+=`<tr><td>${i+1}</td><td>${esc(v.name)}</td><td>${cell}</td></tr>`;});
   });
@@ -941,12 +943,12 @@ function renderVehicles(box){
     const custs=ct.type==='KTX'?(ct.customer?[ct.customer]:[]):(ct.customers||[]);
     custs.forEach(cu=>{const bs=(cu.bienso||'').trim();if(bs){(byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',bienso:bs});total++;}});
   });
-  if(!total){box.innerHTML=`<div class="empty"><div class="ic">🚗</div>Nhà này chưa có xe nào được khai báo.<br>Biển số xe được nhập ở từng khách trong hợp đồng.</div>`;return;}
+  if(!total){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="car"></i></div>Nhà này chưa có xe nào được khai báo.<br>Biển số xe được nhập ở từng khách trong hợp đồng.</div>`;return;}
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
   roomNames.forEach(rn=>{
     const list=byRoom[rn].sort((a,b)=>a.name.localeCompare(b.name,'vi'));
-    rows+=`<tr class="roomhead"><td colspan="3">🏠 Phòng ${esc(rn)} — ${list.length} xe</td></tr>`;
+    rows+=`<tr class="roomhead"><td colspan="3"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${list.length} xe</td></tr>`;
     list.forEach((v,i)=>{rows+=`<tr><td>${i+1}</td><td>${esc(v.name)}</td><td>${esc(v.bienso)}</td></tr>`;});
   });
   box.innerHTML=`<div class="muted" style="margin-bottom:10px">${esc(h.name)} · Tổng: <b>${total}</b> xe</div>
@@ -958,25 +960,25 @@ function renderVehicles(box){
 /* ---------- TAB HỢP ĐỒNG ---------- */
 function renderTabHopDong(c,h){
   c.innerHTML=`
-    <button class="btn lg block" style="margin-bottom:12px" onclick="chooseContractType()">＋ Thêm hợp đồng</button>
+    <button class="btn lg block" style="margin-bottom:12px" onclick="chooseContractType()"><i data-lucide="plus"></i> Thêm hợp đồng</button>
     <div id="hdBody"></div>`;
   renderContractTable($('#hdBody',c),h);
 }
 function chooseContractType(){openModal({title:'Thêm hợp đồng',
   bodyHTML:`<p class="muted" style="margin-top:0">Chọn loại hợp đồng:</p>
     <button class="btn lg block" style="margin-bottom:10px;background:var(--ktx)" onclick="contractForm('KTX')">🛏️ Hợp đồng KTX</button>
-    <button class="btn lg block" style="background:var(--tro)" onclick="contractForm('TRO')">🏠 Hợp đồng phòng trọ</button>`});}
+    <button class="btn lg block" style="background:var(--tro)" onclick="contractForm('TRO')"><i data-lucide="house"></i> Hợp đồng phòng trọ</button>`});}
 
 function renderContractTable(box,h){
   const contracts=(h.contracts||[]).filter(c=>!isEnded(c));let people=[];
   contracts.forEach(ct=>{const room=h.rooms.find(r=>r.id===ct.roomId);const roomName=room?room.name:'(phòng đã xoá)';
     if(ct.type==='KTX')people.push({roomName,name:ct.customer.name,cccd:ct.customer.cccd,phone:ct.customer.phone,ctId:ct.id});
     else (ct.customers||[]).forEach(p=>people.push({roomName,name:p.name,cccd:p.cccd,phone:p.phone,ctId:ct.id}));});
-  if(!people.length){box.innerHTML=`<div class="empty"><div class="ic">📄</div>Chưa có hợp đồng nào.<br>Bấm <b>Thêm hợp đồng</b> để bắt đầu.</div>`;return;}
+  if(!people.length){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="file-text"></i></div>Chưa có hợp đồng nào.<br>Bấm <b>Thêm hợp đồng</b> để bắt đầu.</div>`;return;}
   const byRoom={};people.forEach(p=>{(byRoom[p.roomName]=byRoom[p.roomName]||[]).push(p);});
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
-  roomNames.forEach(rn=>{rows+=`<tr class="roomhead"><td colspan="6">🏠 Phòng ${esc(rn)} — ${byRoom[rn].length} người</td></tr>`;
+  roomNames.forEach(rn=>{rows+=`<tr class="roomhead"><td colspan="6"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${byRoom[rn].length} người</td></tr>`;
     byRoom[rn].forEach((p,i)=>{rows+=`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${esc(p.cccd||'—')}</td>
       <td>${esc(p.phone||'—')}</td><td>${esc(p.roomName)}</td>
       <td><button class="linkbtn" onclick="showPersonInfo('${p.ctId}')">Xem thêm</button></td></tr>`;});});
@@ -995,7 +997,7 @@ function showPersonInfo(ctId){
   const mgrSig=ct.managerSignature&&imgHas(ct.managerSignature)?ct.managerSignature:(h.manager&&h.manager.signature);
   const mgrBlock=imgHas(mgrSig)?`<div class="sectitle">Chữ ký người quản lý</div><div style="text-align:center"><img class="docthumb" style="height:90px;width:auto" src="${imgSrc(mgrSig)}" onclick="viewImg(this.src)"></div>`:'';
   if(ct.type==='KTX'){const c=ct.customer,g=ct.guardian;
-    html=`<button class="btn ok block" style="margin-bottom:12px" onclick="exportContractPdf('${ct.id}')">📄 Xuất hợp đồng (PDF) & chia sẻ</button>
+    html=`<button class="btn ok block" style="margin-bottom:12px" onclick="exportContractPdf('${ct.id}')"><i data-lucide="file-text"></i> Xuất hợp đồng (PDF) & chia sẻ</button>
       <span class="badge ktx">Hợp đồng KTX</span>
       <div class="sectitle">Khách thuê</div>${kv('Họ và tên',c.name)}${kv('Ngày sinh',fmtDateVi(c.dob))}${kv('Số điện thoại',c.phone)}${kv('Số CCCD',c.cccd)}${kv('Biển số xe',c.bienso)}
       ${imgsRow(c)}
@@ -1014,15 +1016,15 @@ function showPersonInfo(ctId){
   openModal({title:'Thông tin chi tiết',bodyHTML:html,
     footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>
       ${isEnded(ct)?'':`<button class="btn" style="background:#d97706" onclick="endContractForm('${ct.id}')">🔚 Kết thúc</button>`}
-      <button class="btn danger" onclick="deleteContract('${ct.id}')">🗑️ Xoá</button>
-      <button class="btn" onclick="contractForm('${ct.type}','${ct.id}')">✏️ Sửa</button>`});
+      <button class="btn danger" onclick="deleteContract('${ct.id}')"><i data-lucide="trash-2"></i> Xoá</button>
+      <button class="btn" onclick="contractForm('${ct.type}','${ct.id}')"><i data-lucide="pencil"></i> Sửa</button>`});
 }
 function kv(k,v){return `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${esc(v||'—')}</span></div>`;}
 function deleteContract(ctId){const h=STORE.house(APP.houseId);const ct=(h.contracts||[]).find(x=>x.id===ctId);
   const nm=ct?(ct.type==='KTX'?((ct.customer&&ct.customer.name)||''):'phòng trọ'):'';
   openModal({title:'Xoá hợp đồng',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá hợp đồng${nm?' của <b>'+esc(nm)+'</b>':''} không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteContract('${ctId}')">🗑️ Chắc chắn xoá</button>`});}
+    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteContract('${ctId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
 function doDeleteContract(ctId){const h=STORE.house(APP.houseId);const ct=h.contracts.find(x=>x.id===ctId);if(ct)dropImages(contractCustomerImgs(ct));h.contracts=h.contracts.filter(x=>x.id!==ctId);STORE.save();enqueueOp({entity:'contract',type:'delete',houseId:APP.houseId,id:ctId});closeModal();toast('Đã xoá hợp đồng','ok');render();}
 /* ===== Kết thúc hợp đồng (lưu lịch sử 6 tháng) ===== */
 var ENDED_KEEP_MONTHS=6;
@@ -1099,7 +1101,7 @@ function contractForm(type,id){
       <div class="field" style="margin-top:12px"><label>Chọn phòng <span class="req">*</span></label><select id="c_room">${roomOpts}</select>
         ${rooms.length?'':'<div class="hint" style="color:var(--danger)">Nhà chưa có phòng trọ. Thêm phòng loại "Phòng trọ" trong Quản lý hệ thống.</div>'}</div>
       <div class="sectitle">Khách hàng</div><div id="custList"></div>
-      <button class="btn ghost sm" type="button" onclick="addCust()">＋ Thêm khách hàng</button>
+      <button class="btn ghost sm" type="button" onclick="addCust()"><i data-lucide="plus"></i> Thêm khách hàng</button>
       <div class="sectitle">Thời hạn cho thuê</div>
       <div class="grid2"><div class="field"><label>Từ ngày</label><input id="c_rs" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" oninput="this.value=maskDmy(this.value)" value="${esc(isoToDmy(ct.rentStart))}"></div>
         <div class="field"><label>Đến ngày</label><input id="c_re" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" oninput="this.value=maskDmy(this.value)" value="${esc(isoToDmy(ct.rentEnd))}"></div></div>
@@ -1122,7 +1124,7 @@ function mgrSigBlock(h){const s=h.manager&&h.manager.signature;const src=imgSrc(
 function renderCustList(){const box=$('#custList');if(!box)return;const cs=window._ctDraft.customers;
   box.innerHTML=cs.map((c,i)=>`<div class="inline-list">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>Khách ${i+1}</b>
-      ${cs.length>1?`<button class="delx" type="button" onclick="removeCust(${i})">🗑️</button>`:''}</div>
+      ${cs.length>1?`<button class="delx" type="button" onclick="removeCust(${i})"><i data-lucide="trash-2"></i></button>`:''}</div>
     <div class="field" style="margin-bottom:8px"><label>Họ và tên</label><input value="${esc(c.name)}" oninput="window._ctDraft.customers[${i}].name=this.value"></div>
     <div class="grid2"><div class="field" style="margin-bottom:8px"><label>Ngày sinh</label><input inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" value="${esc(c.dob)}" oninput="this.value=maskDmy(this.value);window._ctDraft.customers[${i}].dob=this.value"></div>
       <div class="field" style="margin-bottom:8px"><label>SĐT</label><input inputmode="tel" value="${esc(c.phone)}" oninput="window._ctDraft.customers[${i}].phone=this.value"></div></div>
@@ -1187,7 +1189,7 @@ function renderCashAdmin(c){
     <div class="card">
       <div class="sectitle" style="margin-top:0">Danh sách người nhập (user)</div>
       <div id="userList"></div>
-      <button class="btn ghost sm" onclick="addUser()">＋ Thêm người nhập</button>
+      <button class="btn ghost sm" onclick="addUser()"><i data-lucide="plus"></i> Thêm người nhập</button>
     </div>
     <div class="card">
       <div class="sectitle" style="margin-top:0">Tháng đang nhập</div>
@@ -1204,8 +1206,8 @@ function renderCashAdmin(c){
         (!houses.length?`<div class="muted">Chưa có nhà nào.</div>`:
         houses.map(h=>{const locked=(h.lockedMonths||[]).includes(am);
           return `<div class="kv"><span class="k">${esc(h.name)}</span><span class="v">
-            ${locked?'<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')">🔓 Mở khoá</button>'
-                    :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')">🔒 Khoá</button>'}
+            ${locked?'<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>'
+                    :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
           </span></div>`;}).join(''))}
     </div>`;
   _loadUsersDraft();   // luôn nạp bản nháp từ dữ liệu đã lưu để sửa tên hoạt động ngay khi mở trang
@@ -1215,7 +1217,7 @@ function renderUserList(){const box=$('#userList');if(!box)return;const users=ST
   if(!window.__users)_loadUsersDraft();
   box.innerHTML=users.length?users.map((u,i)=>`<div class="chiprow">
     <input style="flex:1" value="${esc(u.name)}" placeholder="Tên người nhập" oninput="if(window.__users[${i}])window.__users[${i}].name=this.value" onchange="commitUsers()">
-    <button class="delx" type="button" onclick="removeUser(${i})">🗑️</button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có ai</div>`;
+    <button class="delx" type="button" onclick="removeUser(${i})"><i data-lucide="trash-2"></i></button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có ai</div>`;
 }
 /* Lưu danh sách người nhập (sau khi sửa tên) vào máy + đồng bộ lên Sheet/Drive. KHÔNG render lại để không mất con trỏ. */
 function commitUsers(){
@@ -1261,7 +1263,7 @@ function financeTargets(h){const out=[];const sm=shortNameMap(h);
 /* ----- Tab Doanh thu / Chi phí ----- */
 function renderFinanceTab(c,h,kind){
   const am=STORE.activeMonth();const title=kind==='thu'?'Doanh thu':'Chi phí';
-  if(!am){c.innerHTML=`<div class="placeholder-tab"><div class="ic">📅</div><h2 style="margin:0 0 6px">${title}</h2><p>Chưa chọn tháng đang nhập.<br>Vào <b>Quản trị dòng tiền</b> để chọn tháng.</p>
+  if(!am){c.innerHTML=`<div class="placeholder-tab"><div class="ic"><i data-lucide="calendar"></i></div><h2 style="margin:0 0 6px">${title}</h2><p>Chưa chọn tháng đang nhập.<br>Vào <b>Quản trị dòng tiền</b> để chọn tháng.</p>
     <button class="btn ghost" style="margin-top:10px" onclick="goCashAdmin()">Mở Quản trị dòng tiền</button></div>`;return;}
   const locked=(h.lockedMonths||[]).includes(am);
   const allList=(h.finance||[]).filter(e=>e.month===am&&e.kind===kind);
@@ -1299,11 +1301,11 @@ function renderFinanceTab(c,h,kind){
       <div><div style="font-weight:700">${title} · tháng ${esc(isoToMy(am))}</div>
         <div class="muted" style="font-size:13px">Tổng: <b>${money(total)}</b> · ${list.length} khoản</div>
         ${fp?`<div style="margin-top:6px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">✕ Bỏ lọc</button></div>`:''}</div>
-      <div>${locked?`<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')">🔓 Mở khoá</button>`
-                    :`<button class="btn sm" onclick="lockMonth('${h.id}')">🔒 Khoá tháng</button>`}</div>
+      <div>${locked?`<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`
+                    :`<button class="btn sm" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i> Khoá tháng</button>`}</div>
     </div>
     ${chuaDong}
-    ${locked?'':`<button class="btn block" style="margin-bottom:12px" onclick="financeForm('${kind}')">＋ Thêm khoản ${title.toLowerCase()}</button>`}
+    ${locked?'':`<button class="btn block" style="margin-bottom:12px" onclick="financeForm('${kind}')"><i data-lucide="plus"></i> Thêm khoản ${title.toLowerCase()}</button>`}
     ${rows}`;
 }
 function unlockMonthThenRender(id){unlockMonth(id);}
@@ -1345,7 +1347,7 @@ function financeForm(kind,id){
         <select id="fTarget" onchange="onFinTargetChange()">
           <option value="">— Chọn khách (KTX) hoặc phòng (trọ) —</option>
           ${avail.map(t=>`<option value="${t.key}" ${e.targetKey===t.key?'selected':''}>${esc(t.short)}</option>`).join('')}
-          <option value="__other__" ${isCustom?'selected':''}>✏️ Khác — tự nhập…</option>
+          <option value="__other__" ${isCustom?'selected':''}><i data-lucide="pencil"></i> Khác — tự nhập…</option>
         </select>
         ${targets.length?(avail.length?'':'<div class="hint" style="color:#16a34a">Tất cả đối tượng đã đóng trong tháng này. ✓</div>'):'<div class="hint" style="color:var(--muted)">Nhà chưa có khách KTX hay phòng trọ — có thể chọn "Khác" để tự nhập.</div>'}</div>
       <div id="fCustomZone"></div>
@@ -1465,7 +1467,7 @@ function deleteFinance(id){const h=STORE.house(APP.houseId);const e=(h.finance||
   const nm=e?(e.label||''):'';const amt=e?money(e.amount):'';
   openModal({title:'Xoá khoản',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá khoản${nm?' <b>'+esc(nm)+'</b>':''}${amt?' ('+amt+')':''} không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteFinance('${id}')">🗑️ Chắc chắn xoá</button>`});}
+    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteFinance('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
 function doDeleteFinance(id){const h=STORE.house(APP.houseId);h.finance=(h.finance||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'finance',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá','ok');render();}
 /* Xem ghi chú đầy đủ của một khoản doanh thu (nút "Xem" ở cột Ghi chú) */
 function viewNote(id){const h=STORE.house(APP.houseId);const e=(h.finance||[]).find(x=>x.id===id);if(!e)return;
@@ -1491,9 +1493,9 @@ function renderTabThietBi(c,h){
       <div><div style="font-weight:700">Thiết bị</div>
         <div class="muted" style="font-size:13px">${devs.length} thiết bị · Tổng chi phí bảo dưỡng: <b>${money(grandTotal)}</b></div></div>
     </div>
-    <button class="btn block" style="margin-bottom:12px" onclick="deviceForm()">＋ Thêm thiết bị</button>`;
+    <button class="btn block" style="margin-bottom:12px" onclick="deviceForm()"><i data-lucide="plus"></i> Thêm thiết bị</button>`;
   if(!devs.length){
-    body+=`<div class="empty"><div class="ic">🔧</div>Chưa có thiết bị nào.<br>Bấm “＋ Thêm thiết bị” để thêm.</div>`;
+    body+=`<div class="empty"><div class="ic">🔧</div>Chưa có thiết bị nào.<br>Bấm “<i data-lucide="plus"></i> Thêm thiết bị” để thêm.</div>`;
     c.innerHTML=body;return;
   }
   devs.forEach(d=>{
@@ -1520,7 +1522,7 @@ function renderTabThietBi(c,h){
         <div style="white-space:nowrap"><button class="linkbtn" onclick="deviceForm('${d.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="deleteDevice('${d.id}')">Xoá</button></div>
       </div>
       ${logHtml}
-      <button class="btn sec sm" style="margin-top:10px" onclick="deviceLogForm('${d.id}')">＋ Thêm bảo dưỡng</button>
+      <button class="btn sec sm" style="margin-top:10px" onclick="deviceLogForm('${d.id}')"><i data-lucide="plus"></i> Thêm bảo dưỡng</button>
     </div>`;
   });
   c.innerHTML=body;
@@ -1550,7 +1552,7 @@ function deleteDevice(id){
   const h=STORE.house(APP.houseId);const d=(h.devices||[]).find(x=>x.id===id);
   openModal({title:'Xoá thiết bị',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá thiết bị${d?' <b>'+esc(d.name)+'</b>':''} cùng toàn bộ lịch sử bảo dưỡng không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDevice('${id}')">🗑️ Chắc chắn xoá</button>`});
+    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDevice('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
 }
 function doDeleteDevice(id){const h=STORE.house(APP.houseId);h.devices=(h.devices||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'device',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá thiết bị','ok');render();}
 /* ----- Thêm/sửa lịch sử sửa chữa/bảo dưỡng ----- */
@@ -1582,7 +1584,7 @@ function saveDeviceLog(devId,logId,editing){
 function deleteDeviceLog(devId,logId){
   openModal({title:'Xoá bảo dưỡng',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá bản ghi bảo dưỡng này không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDeviceLog('${devId}','${logId}')">🗑️ Chắc chắn xoá</button>`});
+    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDeviceLog('${devId}','${logId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
 }
 function doDeleteDeviceLog(devId,logId){const h=STORE.house(APP.houseId);const d=(h.devices||[]).find(x=>x.id===devId);if(d){d.logs=(d.logs||[]).filter(x=>x.id!==logId);STORE.save();enqueueDeviceUpsert(devId);}closeModal();toast('Đã xoá','ok');render();}
 /* gửi cả thiết bị (kèm logs) lên server để đồng bộ + ghi Sheet */
@@ -1615,7 +1617,7 @@ function qtSettle(items){
 function renderTabQuyetToan(c,h){
   const months=qtAvailableMonths(h);
   if(!months.length){
-    c.innerHTML=`<div class="placeholder-tab"><div class="ic">📊</div><h2 style="margin:0 0 6px">Quyết toán</h2><p>Chưa có khoản thu/chi nào để quyết toán.</p></div>`;return;
+    c.innerHTML=`<div class="placeholder-tab"><div class="ic"><i data-lucide="bar-chart-3"></i></div><h2 style="margin:0 0 6px">Quyết toán</h2><p>Chưa có khoản thu/chi nào để quyết toán.</p></div>`;return;
   }
   let month=APP.qtMonth;
   if(!month||months.indexOf(month)<0)month=qtLatestLocked(h)||months[0];
@@ -1639,8 +1641,8 @@ function renderTabQuyetToan(c,h){
   parts.forEach(p=>{p.net=p.thu-p.chi;p.bal=p.net-target;});
   const tx=qtSettle(parts.map(p=>({name:p.name,bal:p.bal})));
 
-  const monthOpts=months.map(m=>`<option value="${m}" ${m===month?'selected':''}>tháng ${esc(isoToMy(m))}${(h.lockedMonths||[]).includes(m)?' 🔒':''}</option>`).join('');
-  const lockBadge=locked?`<span class="badge">🔒 Đã khoá</span>`:`<span class="badge danger">Chưa khoá</span>`;
+  const monthOpts=months.map(m=>`<option value="${m}" ${m===month?'selected':''}>tháng ${esc(isoToMy(m))}${(h.lockedMonths||[]).includes(m)?' <i data-lucide="lock"></i>':''}</option>`).join('');
+  const lockBadge=locked?`<span class="badge"><i data-lucide="lock"></i> Đã khoá</span>`:`<span class="badge danger">Chưa khoá</span>`;
   const partRows=parts.map(p=>{
     const pc=personColor(p.id);
     const col=p.bal>0.5?'#b45309':(p.bal<-0.5?'#16a34a':'inherit');
@@ -1812,9 +1814,9 @@ function openSync(){const cfg=getSync();
         <div class="kv"><span class="k">Kết nối</span><span class="v"><span class="badge ok">Supabase</span></span></div>
         <div class="kv"><span class="k">Đồng bộ gần nhất</span><span class="v">${last}</span></div>
         <div class="kv"><span class="k">Chờ gửi</span><span class="v">${getOutbox().length} thao tác</span></div></div>
-      <button class="btn ok block" style="margin-bottom:10px" onclick="closeModal();refreshNow()">↻ Đồng bộ ngay</button>
+      <button class="btn ok block" style="margin-bottom:10px" onclick="closeModal();refreshNow()"><i data-lucide="refresh-cw"></i> Đồng bộ ngay</button>
       <button class="btn block" style="margin-bottom:10px" onclick="ntEnablePush(true).then(()=>toast('Đã đăng ký thông báo lại','ok'))">🔔 Bật lại thông báo đẩy (máy này)</button>
-      <button class="btn danger block" onclick="ntLogout()">⎋ Đăng xuất</button>`,
+      <button class="btn danger block" onclick="ntLogout()"><i data-lucide="log-out"></i> Đăng xuất</button>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>`});
 }
 function saveSyncUrl(){}
@@ -1870,8 +1872,8 @@ async function refreshNow(){
 /* ---------- BACKUP ---------- */
 function openBackup(){openModal({title:'Sao lưu & phục hồi',
   bodyHTML:`<p class="muted" style="margin-top:0">Dữ liệu đang lưu trên thiết bị này. Bạn có thể xuất ra file để sao lưu/chuyển máy, hoặc dùng đồng bộ Google.</p>
-    <button class="btn block" style="margin-bottom:10px" onclick="exportData()">⬇️ Xuất dữ liệu (.json)</button>
-    <label class="btn sec block" style="margin-bottom:6px">⬆️ Nhập dữ liệu từ file<input type="file" accept=".json,application/json" style="display:none" onchange="importData(this)"></label>`,
+    <button class="btn block" style="margin-bottom:10px" onclick="exportData()"><i data-lucide="download"></i> Xuất dữ liệu (.json)</button>
+    <label class="btn sec block" style="margin-bottom:6px"><i data-lucide="upload"></i> Nhập dữ liệu từ file<input type="file" accept=".json,application/json" style="display:none" onchange="importData(this)"></label>`,
   footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>`});}
 function exportData(){const blob=new Blob([STORE.export()],{type:'application/json'});const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='nhatrolyson-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Đã xuất dữ liệu','ok');}
@@ -1898,7 +1900,7 @@ function ntShowLogin(msg){
     ov=document.createElement('div'); ov.id='ntLogin';
     ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#0d6efd;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
-      <div style="text-align:center;font-size:40px">🏠</div>
+      <div style="text-align:center;font-size:40px"><i data-lucide="house"></i></div>
       <h2 style="text-align:center;margin:6px 0 2px">Nhà trọ Lý Sơn</h2>
       <p style="text-align:center;color:#666;margin:0 0 18px;font-size:14px">Đăng nhập để tiếp tục</p>
       <div style="margin-bottom:12px"><label style="font-size:13px;color:#444">Số điện thoại</label>
@@ -2078,7 +2080,7 @@ function ntBadgeEl(){
   if(!b){
     b=document.createElement('button'); b.id='ntBell';
     b.style.cssText='position:fixed;bottom:18px;right:16px;z-index:9000;width:52px;height:52px;border-radius:50%;border:0;background:#0d6efd;color:#fff;font-size:22px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer';
-    b.innerHTML='🔔<span id="ntBellCount" style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;background:#ef4444;color:#fff;border-radius:10px;font-size:12px;line-height:20px;padding:0 4px;display:none"></span>';
+    b.innerHTML='<i data-lucide="bell"></i><span id="ntBellCount" style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;background:#ef4444;color:#fff;border-radius:10px;font-size:12px;line-height:20px;padding:0 4px;display:none"></span>';
     b.addEventListener('click',ntOpenNotifications);
     document.body.appendChild(b);
   }
@@ -2177,6 +2179,12 @@ async function ntEnablePush(force){
     await SB.from('nt_push_subscriptions').upsert({user_id:NT.user.id, endpoint:sub.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth},{onConflict:'endpoint'});
   }catch(e){ console.warn('Bật đẩy lỗi:',e); if(force)toast('Bật thông báo lỗi','err'); }
 }
+
+/* ---------- Lucide icons: tự vẽ lại mỗi khi giao diện đổi ---------- */
+let _licT=null;
+function ntIcons(){ clearTimeout(_licT); _licT=setTimeout(()=>{ try{ if(window.lucide) lucide.createIcons(); }catch(e){} }, 20); }
+try{ new MutationObserver(ntIcons).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+ntIcons();
 
 /* ---------- Khởi động ---------- */
 (async function(){
