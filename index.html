@@ -622,7 +622,7 @@ function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const 
 function renderEntry(c){const houses=STORE.houses();
   c.innerHTML=`<div class="hero"><div class="logo"><i data-lucide="house"></i></div><h1>Nhà trọ Lý Sơn</h1><p>Quản lý nhà trọ &amp; ký túc xá</p></div>
     <button class="btn lg ghost block" style="margin-bottom:18px" onclick="goSystem()"><i data-lucide="settings"></i> Quản lý hệ thống</button>
-    <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()"><i data-lucide="user"></i> Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''} · Đồng bộ · Đăng xuất</button>
+    <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()"><i data-lucide="user"></i> Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''}</button>
     <div class="sectitle">Chọn nhà để quản lý</div><div id="houseList"></div>`;
   const list=$('#houseList',c);
   if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.<br>Vào <b>Quản lý hệ thống</b> để thêm nhà.</div>`;return;}
@@ -1762,16 +1762,12 @@ async function flushOutbox(){
   } finally { _syncing=false; }
   if(getOutbox().length) scheduleFlush();
 }
-function openSync(){const cfg=getSync();
-  const last=cfg.lastSync?new Date(cfg.lastSync).toLocaleString('vi-VN'):'—';
-  openModal({title:'Tài khoản & đồng bộ',
+function openSync(){
+  openModal({title:'Tài khoản',
     bodyHTML:`<div class="card" style="margin-bottom:12px">
         <div class="kv"><span class="k">Đăng nhập</span><span class="v">${esc(NT.user?NT.user.name:'—')} ${NT.user&&NT.user.role==='admin'?'<span class="badge ok">admin</span>':''}</span></div>
-        <div class="kv"><span class="k">Kết nối</span><span class="v"><span class="badge ok">Supabase</span></span></div>
-        <div class="kv"><span class="k">Đồng bộ gần nhất</span><span class="v">${last}</span></div>
-        <div class="kv"><span class="k">Chờ gửi</span><span class="v">${getOutbox().length} thao tác</span></div></div>
-      <button class="btn ok block" style="margin-bottom:10px" onclick="closeModal();refreshNow()"><i data-lucide="refresh-cw"></i> Đồng bộ ngay</button>
-      <button class="btn block" style="margin-bottom:10px" onclick="ntEnablePush(true).then(()=>toast('Đã đăng ký thông báo lại','ok'))">🔔 Bật lại thông báo đẩy (máy này)</button>
+        <div class="kv"><span class="k">Số điện thoại</span><span class="v">${esc(NT.user?NT.user.phone:'—')}</span></div>
+        <div class="kv"><span class="k">Kết nối</span><span class="v"><span class="badge ok">Supabase</span></span></div></div>
       <button class="btn danger block" onclick="ntLogout()"><i data-lucide="log-out"></i> Đăng xuất</button>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>`});
 }
