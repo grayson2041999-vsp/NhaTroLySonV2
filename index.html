@@ -600,7 +600,9 @@ function render(){renderTopbar();renderTabs();const c=$('#content');
   else if(APP.screen==='house')renderHouse(c);}
 
 function bellBtn(){
-  return NT.user?`<button class="iconbtn" aria-label="Thông báo" onclick="ntOpenNotifications()"><i data-lucide="bell"></i><span class="topbadge" id="ntBellCount"${NT_UNREAD>0?'':' style="display:none"'}>${NT_UNREAD>99?'99+':NT_UNREAD}</span></button>`:'';
+  if(!NT.user)return '';
+  const n=(typeof ntCtxUnread==='function')?ntCtxUnread():0;
+  return `<button class="iconbtn" aria-label="Thông báo" onclick="ntOpenNotifications()"><i data-lucide="bell"></i><span class="topbadge" id="ntBellCount"${n>0?'':' style="display:none"'}>${n>99?'99+':n}</span></button>`;
 }
 function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
   if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${bell}`;}
@@ -2070,16 +2072,22 @@ async function ntApplyOp(op){
 }
 
 /* ---------- 4D: thông báo đỏ + realtime ---------- */
-let NT_UNREAD=0;
-function ntSetBadge(n){
-  const c=document.getElementById('ntBellCount'); /* badge nằm trong chuông ở góc phải topbar */
+let NT_UNREAD_ALL=0, NT_UNREAD_HOUSE={};
+/* Số chưa đọc theo ngữ cảnh: trong 1 nhà -> chỉ nhà đó; ngoài -> tất cả */
+function ntCtxUnread(){ return (APP.screen==='house'&&APP.houseId)?(NT_UNREAD_HOUSE[APP.houseId]||0):NT_UNREAD_ALL; }
+function ntUpdateBell(){
+  const c=document.getElementById('ntBellCount'); const n=ntCtxUnread();
   if(c){ if(n>0){c.textContent=n>99?'99+':n;c.style.display='';} else {c.style.display='none';} }
-  /* số đỏ trên ICON app ngoài màn hình chính (PWA đã cài) */
-  try{ if('setAppBadge' in navigator){ if(n>0) navigator.setAppBadge(n); else navigator.clearAppBadge(); } }catch(e){}
+  try{ if('setAppBadge' in navigator){ if(NT_UNREAD_ALL>0) navigator.setAppBadge(NT_UNREAD_ALL); else navigator.clearAppBadge(); } }catch(e){} /* icon app: tổng */
 }
 async function ntRefreshBadge(){
   if(!NT.user)return;
-  try{ const r=await SB.from('nt_notifications').select('id',{count:'exact',head:true}).eq('user_id',NT.user.id).is('read_at',null); NT_UNREAD=r.count||0; ntSetBadge(NT_UNREAD);}catch(e){}
+  try{
+    const {data}=await SB.from('nt_notifications').select('activity:nt_activity_log(house_id)').eq('user_id',NT.user.id).is('read_at',null);
+    NT_UNREAD_ALL=(data||[]).length; NT_UNREAD_HOUSE={};
+    (data||[]).forEach(n=>{const hid=(n.activity||{}).house_id; if(hid)NT_UNREAD_HOUSE[hid]=(NT_UNREAD_HOUSE[hid]||0)+1;});
+    ntUpdateBell();
+  }catch(e){}
 }
 function ntStartRealtime(){
   if(!NT.user)return;
@@ -2088,7 +2096,7 @@ function ntStartRealtime(){
   try{
     SB.channel('nt_notif_'+NT.user.id)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'nt_notifications',filter:'user_id=eq.'+NT.user.id},
-        ()=>{ NT_UNREAD++; ntSetBadge(NT_UNREAD); toast('🔔 Có cập nhật mới'); scheduleDataRefresh(); })
+        ()=>{ ntRefreshBadge(); toast('🔔 Có cập nhật mới'); scheduleDataRefresh(); })
       .subscribe();
   }catch(e){ console.warn('realtime',e); }
   ntStartDataRealtime();
@@ -2118,29 +2126,42 @@ function ntStartDataRealtime(){
     ch.subscribe();
   }catch(e){ console.warn('data realtime',e); }
 }
+function ntNotifScope(){ return (APP.screen==='house'&&APP.houseId)?APP.houseId:null; }
 async function ntClearNotifications(){
+  const scope=ntNotifScope();
   try{
-    const r=await SB.from('nt_notifications').delete().eq('user_id',NT.user.id); if(r.error)throw r.error;
-    NT_UNREAD=0; ntSetBadge(0);
+    if(scope){
+      const {data}=await SB.from('nt_notifications').select('id,activity:nt_activity_log(house_id)').eq('user_id',NT.user.id);
+      const ids=(data||[]).filter(n=>(n.activity||{}).house_id===scope).map(n=>n.id);
+      if(ids.length){ const r=await SB.from('nt_notifications').delete().in('id',ids); if(r.error)throw r.error; }
+    }else{
+      const r=await SB.from('nt_notifications').delete().eq('user_id',NT.user.id); if(r.error)throw r.error;
+    }
     const box=document.getElementById('ntNotifList'); if(box)box.innerHTML='<div class="empty">Chưa có thông báo</div>';
-    toast('Đã xóa tất cả thông báo','ok');
+    await ntRefreshBadge();
+    toast('Đã xóa thông báo','ok');
   }catch(e){ console.warn('clear notif',e); toast('Không xóa được: '+(e&&e.message?e.message:e),'err'); }
 }
 async function ntOpenNotifications(){
-  openModal({title:'Thông báo',
+  const scope=ntNotifScope();
+  const hname=scope?((STORE.house(scope)||{}).name||''):'';
+  openModal({title: scope?('Thông báo · '+hname):'Thông báo',
     bodyHTML:`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="linkbtn" onclick="ntClearNotifications()"><i data-lucide="trash-2"></i> Xóa tất cả</button></div>
       <div id="ntNotifList" style="max-height:60vh;overflow:auto">Đang tải…</div>`,
     footHTML:'<button class="btn sec" onclick="closeModal()">Đóng</button>'});
   try{
     const {data,error}=await SB.from('nt_notifications')
-      .select('id,read_at,created_at,activity:nt_activity_log(actor_id,actor_name,summary,created_at)')
-      .eq('user_id',NT.user.id).order('created_at',{ascending:false}).limit(50);
+      .select('id,read_at,created_at,activity:nt_activity_log(actor_id,actor_name,summary,created_at,house_id)')
+      .eq('user_id',NT.user.id).order('created_at',{ascending:false}).limit(100);
     if(error)throw error;
     const box=document.getElementById('ntNotifList'); if(!box)return;
     const prof={}; (NT.profiles||[]).forEach(p=>prof[p.id]=p);
-    if(!data||!data.length){ box.innerHTML='<div class="empty">Chưa có thông báo</div>'; }
+    let rows=data||[];
+    if(scope) rows=rows.filter(n=>(n.activity||{}).house_id===scope);
+    const show=rows.slice(0,50);
+    if(!show.length){ box.innerHTML='<div class="empty">Chưa có thông báo'+(scope?' cho nhà này':'')+'</div>'; }
     else{
-      box.innerHTML=data.map(n=>{const a=n.activity||{};const unread=!n.read_at;
+      box.innerHTML=show.map(n=>{const a=n.activity||{};const unread=!n.read_at;
         const av=ntAvatarHtml(a.actor_name,(prof[a.actor_id]||{}).avatar,44);
         return `<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--border)">
           ${av}
@@ -2151,8 +2172,10 @@ async function ntOpenNotifications(){
           ${unread?'<span style="width:9px;height:9px;border-radius:50%;background:var(--primary);flex:none;margin-top:6px"></span>':''}
         </div>`;}).join('');
     }
-    await SB.from('nt_notifications').update({read_at:new Date().toISOString()}).eq('user_id',NT.user.id).is('read_at',null);
-    NT_UNREAD=0; ntSetBadge(0);
+    /* đánh dấu đã đọc đúng phạm vi đang xem */
+    if(scope){ const ids=rows.filter(n=>!n.read_at).map(n=>n.id); if(ids.length) await SB.from('nt_notifications').update({read_at:new Date().toISOString()}).in('id',ids); }
+    else { await SB.from('nt_notifications').update({read_at:new Date().toISOString()}).eq('user_id',NT.user.id).is('read_at',null); }
+    await ntRefreshBadge();
   }catch(e){ const box=document.getElementById('ntNotifList'); if(box)box.innerHTML='<div class="empty">Không tải được thông báo</div>'; }
 }
 /* ---------- Web Push: đăng ký nhận đẩy (số nhảy trên icon cả khi app đóng) ---------- */
