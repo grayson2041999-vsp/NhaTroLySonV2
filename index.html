@@ -50,15 +50,15 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 /* thanh điều hướng dưới đáy */
 .bnav{position:fixed;left:0;right:0;bottom:0;max-width:960px;margin:0 auto;z-index:40;display:none;
   background:var(--card);border-top:1px solid var(--border);box-shadow:0 -1px 8px rgba(0,0,0,.06);
-  padding-bottom:env(safe-area-inset-bottom);
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
   padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}
 .bnav-on .bnav{display:flex}
 .bnav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.1;border-radius:12px}
 .bnav-item svg.lucide{width:26px;height:26px;stroke-width:2}
 .bnav-item.active{color:var(--primary)}
 .bnav-item:active{background:var(--primary-light)}
-.bnav-on .content{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
-.bnav-on .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+.bnav-on .content{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+.bnav-on .toast{bottom:calc(94px + env(safe-area-inset-bottom))}
 @keyframes spin{to{transform:rotate(360deg)}}
 .content{flex:1;padding:16px;padding-bottom:40px}
 
