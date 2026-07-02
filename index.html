@@ -1813,7 +1813,7 @@ function openSync(){const cfg=getSync();
         <div class="kv"><span class="k">Chờ gửi</span><span class="v">${getOutbox().length} thao tác</span></div></div>
       <button class="btn ok block" style="margin-bottom:10px" onclick="closeModal();refreshNow()">↻ Đồng bộ ngay</button>
       <button class="btn block" style="margin-bottom:10px" onclick="ntMigrateImages()">🖼️ Chuyển ảnh máy này lên Supabase</button>
-      <button class="btn block" style="margin-bottom:10px" onclick="ntEnablePush().then(()=>toast('Đã bật thông báo trên máy này','ok'))">🔔 Bật thông báo đẩy trên máy này</button>
+      <button class="btn block" style="margin-bottom:10px" onclick="ntEnablePush(true).then(()=>toast('Đã đăng ký thông báo lại','ok'))">🔔 Bật lại thông báo đẩy (máy này)</button>
       <button class="btn danger block" onclick="ntLogout()">⎋ Đăng xuất</button>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>`});
 }
@@ -2119,7 +2119,7 @@ async function ntRefreshBadge(){
 }
 function ntStartRealtime(){
   if(!NT.user)return;
-  ntEnablePush(); /* đăng ký nhận đẩy + xin quyền */
+  ntEnablePush(false); /* đăng ký nhận đẩy nếu chưa có */
   ntBadgeEl(); ntRefreshBadge();
   try{
     SB.channel('nt_notif_'+NT.user.id)
@@ -2156,18 +2156,23 @@ function urlB64ToUint8(base64){
   const raw=atob(b); const arr=new Uint8Array(raw.length);
   for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i); return arr;
 }
-async function ntEnablePush(){
+async function ntEnablePush(force){
   if(!NT.user||!('serviceWorker' in navigator)||!('PushManager' in window))return;
   try{
     const reg=await navigator.serviceWorker.register('sw.js');
     let perm=Notification.permission;
     if(perm==='default') perm=await Notification.requestPermission();
-    if(perm!=='granted'){ toast('Chưa bật thông báo — vào Cài đặt để cho phép','err'); return; }
+    if(perm!=='granted'){ if(force)toast('Chưa bật thông báo — vào Cài đặt để cho phép','err'); return; }
     let sub=await reg.pushManager.getSubscription();
+    if(force && sub){ /* hủy đăng ký cũ để tạo lại đúng khóa hiện tại */
+      const oldEp=sub.endpoint; try{await sub.unsubscribe();}catch(e){}
+      try{await SB.from('nt_push_subscriptions').delete().eq('endpoint',oldEp);}catch(e){}
+      sub=null;
+    }
     if(!sub){ sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)}); }
     const j=sub.toJSON();
     await SB.from('nt_push_subscriptions').upsert({user_id:NT.user.id, endpoint:sub.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth},{onConflict:'endpoint'});
-  }catch(e){ console.warn('Bật đẩy lỗi:',e); }
+  }catch(e){ console.warn('Bật đẩy lỗi:',e); if(force)toast('Bật thông báo lỗi','err'); }
 }
 
 /* ---------- Khởi động ---------- */
