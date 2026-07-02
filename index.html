@@ -1783,15 +1783,20 @@ function ntTimeAgo(iso){
 }
 async function ntChangeAvatar(){
   const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
-    try{ toast('Đang tải ảnh…');
+  inp.style.position='fixed'; inp.style.left='-9999px'; document.body.appendChild(inp); /* iOS cần input nằm trong trang */
+  inp.onchange=async()=>{
+    const f=inp.files&&inp.files[0];
+    try{
+      if(!f)return;
+      toast('Đang tải ảnh…');
       const dataUrl=await fileToResizedDataURL(f,400,0.85);
-      let url=await ntUploadDataUrl('avatars/'+NT.user.id,dataUrl); if(!url)throw new Error('no-url');
+      let url=await ntUploadDataUrl('avatars/'+NT.user.id,dataUrl); if(!url)throw new Error('không tạo được link ảnh');
       url+='?v='+Date.now();
       const r=await SB.from('nt_profiles').update({avatar_url:url}).eq('id',NT.user.id); if(r.error)throw r.error;
       NT.user.avatar=url; const p=(NT.profiles||[]).find(x=>x.id===NT.user.id); if(p)p.avatar=url;
       toast('Đã cập nhật ảnh đại diện','ok'); openSync();
-    }catch(e){ console.warn('avatar',e); toast('Lỗi tải ảnh','err'); }
+    }catch(e){ console.warn('avatar error',e); toast('Lỗi ảnh: '+(e&&e.message?e.message:e),'err'); }
+    finally{ inp.remove(); }
   };
   inp.click();
 }
