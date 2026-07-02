@@ -1211,10 +1211,17 @@ function shortNameMap(h){
   return map;
 }
 function financeTargets(h){const out=[];const sm=shortNameMap(h);
-  (h.contracts||[]).forEach(ct=>{if(!isEnded(ct)&&ct.type==='KTX'&&ct.customer&&(ct.customer.name||'').trim()){
-    const room=(h.rooms||[]).find(r=>r.id===ct.roomId);const pre=room?'['+room.name+'] ':'';const full=ct.customer.name.trim();
-    out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+full,short:pre+(sm[full]||full)});}});
-  (h.rooms||[]).filter(r=>r.type==='TRO').forEach(r=>{const lbl='Phòng '+r.name+' (trọ)';out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl});});
+  const roomName=(id)=>{const r=(h.rooms||[]).find(x=>x.id===id);return r?r.name:'';};
+  const natCmp=(a,b)=>String(a||'').localeCompare(String(b||''),'vi',{numeric:true,sensitivity:'base'});
+  /* KTX: sắp theo phòng, rồi theo tên khách */
+  const ktx=(h.contracts||[]).filter(ct=>!isEnded(ct)&&ct.type==='KTX'&&ct.customer&&(ct.customer.name||'').trim())
+    .map(ct=>({ct,room:roomName(ct.roomId),name:ct.customer.name.trim()}));
+  ktx.sort((a,b)=>natCmp(a.room,b.room)||natCmp(a.name,b.name));
+  ktx.forEach(({ct,room,name})=>{const pre=room?'['+room+'] ':'';
+    out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+name,short:pre+(sm[name]||name)});});
+  /* Phòng trọ: sắp theo số phòng */
+  (h.rooms||[]).filter(r=>r.type==='TRO').slice().sort((a,b)=>natCmp(a.name,b.name))
+    .forEach(r=>{const lbl='Phòng '+r.name+' (trọ)';out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl});});
   return out;
 }
 
