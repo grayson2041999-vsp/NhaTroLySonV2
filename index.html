@@ -1762,9 +1762,46 @@ async function flushOutbox(){
   } finally { _syncing=false; }
   if(getOutbox().length) scheduleFlush();
 }
+/* Ảnh đại diện tròn (có ảnh -> ảnh; chưa có -> chữ cái đầu, màu theo người) */
+function ntAvatarHtml(name,url,size){
+  size=size||44;
+  if(url) return `<img src="${esc(url)}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;background:#e5e7eb">`;
+  const ch=((name||'?').trim().charAt(0)||'?').toUpperCase();
+  const col=personColor(name||'');
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col.bar};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none;vertical-align:middle;font-size:${Math.round(size*0.42)}px">${esc(ch)}</div>`;
+}
+/* Thời gian: <24h ghi "x phút/giờ trước", sau 24h ghi ngày giờ cụ thể */
+function ntTimeAgo(iso){
+  if(!iso)return '';
+  const t=new Date(iso).getTime(); if(isNaN(t))return '';
+  const min=Math.floor((Date.now()-t)/60000);
+  if(min<1)return 'Vừa xong';
+  if(min<60)return min+' phút trước';
+  const hr=Math.floor(min/60);
+  if(hr<24)return hr+' giờ trước';
+  return new Date(t).toLocaleString('vi-VN');
+}
+async function ntChangeAvatar(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
+    try{ toast('Đang tải ảnh…');
+      const dataUrl=await fileToResizedDataURL(f,400,0.85);
+      let url=await ntUploadDataUrl('avatars/'+NT.user.id,dataUrl); if(!url)throw new Error('no-url');
+      url+='?v='+Date.now();
+      const r=await SB.from('nt_profiles').update({avatar_url:url}).eq('id',NT.user.id); if(r.error)throw r.error;
+      NT.user.avatar=url; const p=(NT.profiles||[]).find(x=>x.id===NT.user.id); if(p)p.avatar=url;
+      toast('Đã cập nhật ảnh đại diện','ok'); openSync();
+    }catch(e){ console.warn('avatar',e); toast('Lỗi tải ảnh','err'); }
+  };
+  inp.click();
+}
 function openSync(){
   openModal({title:'Tài khoản',
-    bodyHTML:`<div class="card" style="margin-bottom:12px">
+    bodyHTML:`<div style="text-align:center;margin-bottom:14px">
+        ${ntAvatarHtml(NT.user?NT.user.name:'', NT.user?NT.user.avatar:null, 84)}
+        <div><button class="btn sm ghost" style="margin-top:10px" onclick="ntChangeAvatar()"><i data-lucide="camera"></i> Đổi ảnh đại diện</button></div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
         <div class="kv"><span class="k">Đăng nhập</span><span class="v">${esc(NT.user?NT.user.name:'—')} ${NT.user&&NT.user.role==='admin'?'<span class="badge ok">admin</span>':''}</span></div>
         <div class="kv"><span class="k">Số điện thoại</span><span class="v">${esc(NT.user?NT.user.phone:'—')}</span></div>
         <div class="kv"><span class="k">Kết nối</span><span class="v"><span class="badge ok">Supabase</span></span></div></div>
@@ -1889,9 +1926,9 @@ async function ntLogout(){ try{await SB.auth.signOut();}catch(e){} NT.user=null;
 async function ntLoadProfile(){
   const {data:{user}}=await SB.auth.getUser();
   if(!user)return false;
-  const {data,error}=await SB.from('nt_profiles').select('id,full_name,role,phone').eq('id',user.id).single();
-  if(error||!data){ NT.user={id:user.id,name:(user.email||'').split('@')[0],role:'staff',phone:''}; }
-  else { NT.user={id:data.id,name:data.full_name||data.phone,role:data.role,phone:data.phone}; }
+  const {data,error}=await SB.from('nt_profiles').select('id,full_name,role,phone,avatar_url').eq('id',user.id).single();
+  if(error||!data){ NT.user={id:user.id,name:(user.email||'').split('@')[0],role:'staff',phone:'',avatar:null}; }
+  else { NT.user={id:data.id,name:data.full_name||data.phone,role:data.role,phone:data.phone,avatar:data.avatar_url||null}; }
   return true;
 }
 async function ntAfterLogin(){
@@ -1915,11 +1952,11 @@ async function ntPullAll(){
     SB.from('nt_contracts').select('*'), SB.from('nt_customers').select('*'),
     SB.from('nt_finance').select('*'), SB.from('nt_devices').select('*'),
     SB.from('nt_maintenance_logs').select('*'), SB.from('nt_locked_months').select('*'),
-    SB.from('nt_profiles').select('id,full_name,role,phone'), SB.from('nt_settings').select('*')
+    SB.from('nt_profiles').select('id,full_name,role,phone,avatar_url'), SB.from('nt_settings').select('*')
   ];
   const [houses,rooms,contracts,customers,finance,devices,logs,locked,profiles,settings]=await Promise.all(q);
   for(const r of [houses,rooms,contracts,customers,finance,devices,logs,locked,profiles,settings]){ if(r.error) throw r.error; }
-  NT.profiles=(profiles.data||[]).map(p=>({id:p.id,name:p.full_name||p.phone,role:p.role}));
+  NT.profiles=(profiles.data||[]).map(p=>({id:p.id,name:p.full_name||p.phone,role:p.role,avatar:p.avatar_url||null}));
   const g=(arr,k)=>{const m={};(arr||[]).forEach(x=>{(m[x[k]]=m[x[k]]||[]).push(x);});return m;};
   const R=g(rooms.data,'house_id'), C=g(contracts.data,'house_id'), CU=g(customers.data,'contract_id'),
         F=g(finance.data,'house_id'), D=g(devices.data,'house_id'), L=g(logs.data,'device_id'), LM=g(locked.data,'house_id');
@@ -2081,17 +2118,23 @@ async function ntOpenNotifications(){
     footHTML:'<button class="btn sec" onclick="closeModal()">Đóng</button>'});
   try{
     const {data,error}=await SB.from('nt_notifications')
-      .select('id,read_at,created_at,activity:nt_activity_log(actor_name,action,entity,summary,created_at)')
+      .select('id,read_at,created_at,activity:nt_activity_log(actor_id,actor_name,summary,created_at)')
       .eq('user_id',NT.user.id).order('created_at',{ascending:false}).limit(50);
     if(error)throw error;
     const box=document.getElementById('ntNotifList'); if(!box)return;
+    const prof={}; (NT.profiles||[]).forEach(p=>prof[p.id]=p);
     if(!data||!data.length){ box.innerHTML='<div class="empty">Chưa có thông báo</div>'; }
     else{
       box.innerHTML=data.map(n=>{const a=n.activity||{};const unread=!n.read_at;
-        const when=a.created_at?new Date(a.created_at).toLocaleString('vi-VN'):'';
-        return `<div class="card" style="margin-bottom:8px;padding:10px 12px;${unread?'border-left:3px solid #ef4444':''}">
-          <div style="font-weight:${unread?'600':'400'}">${esc(a.summary||a.entity||'Cập nhật')}</div>
-          <div class="muted" style="font-size:12px">${esc(a.actor_name||'')} · ${when}</div></div>`;}).join('');
+        const av=ntAvatarHtml(a.actor_name,(prof[a.actor_id]||{}).avatar,44);
+        return `<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--border)">
+          ${av}
+          <div style="flex:1;min-width:0">
+            <div style="line-height:1.35"><b>${esc(a.actor_name||'')}</b> ${esc(a.summary||'')}</div>
+            <div class="muted" style="font-size:12px;margin-top:3px">${ntTimeAgo(a.created_at)}</div>
+          </div>
+          ${unread?'<span style="width:9px;height:9px;border-radius:50%;background:var(--primary);flex:none;margin-top:6px"></span>':''}
+        </div>`;}).join('');
     }
     await SB.from('nt_notifications').update({read_at:new Date().toISOString()}).eq('user_id',NT.user.id).is('read_at',null);
     NT_UNREAD=0; ntSetBadge(0);
