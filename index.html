@@ -1303,7 +1303,7 @@ function financeForm(kind,id){
         <select id="fTarget" onchange="onFinTargetChange()">
           <option value="">— Chọn khách (KTX) hoặc phòng (trọ) —</option>
           ${avail.map(t=>`<option value="${t.key}" ${e.targetKey===t.key?'selected':''}>${esc(t.short)}</option>`).join('')}
-          <option value="__other__" ${isCustom?'selected':''}><i data-lucide="pencil"></i> Khác — tự nhập…</option>
+          <option value="__other__" ${isCustom?'selected':''}>✎ Khác — tự nhập…</option>
         </select>
         ${targets.length?(avail.length?'':'<div class="hint" style="color:#16a34a">Tất cả đối tượng đã đóng trong tháng này. ✓</div>'):'<div class="hint" style="color:var(--muted)">Nhà chưa có khách KTX hay phòng trọ — có thể chọn "Khác" để tự nhập.</div>'}</div>
       <div id="fCustomZone"></div>
@@ -1597,7 +1597,7 @@ function renderTabQuyetToan(c,h){
   parts.forEach(p=>{p.net=p.thu-p.chi;p.bal=p.net-target;});
   const tx=qtSettle(parts.map(p=>({name:p.name,bal:p.bal})));
 
-  const monthOpts=months.map(m=>`<option value="${m}" ${m===month?'selected':''}>tháng ${esc(isoToMy(m))}${(h.lockedMonths||[]).includes(m)?' <i data-lucide="lock"></i>':''}</option>`).join('');
+  const monthOpts=months.map(m=>`<option value="${m}" ${m===month?'selected':''}>tháng ${esc(isoToMy(m))}${(h.lockedMonths||[]).includes(m)?' 🔒':''}</option>`).join('');
   const lockBadge=locked?`<span class="badge"><i data-lucide="lock"></i> Đã khoá</span>`:`<span class="badge danger">Chưa khoá</span>`;
   const partRows=parts.map(p=>{
     const pc=personColor(p.id);
@@ -2187,9 +2187,11 @@ function ntLoading(on){ const el=document.getElementById('ntLoad'); if(!el)retur
   else { el.className='ntload done'; setTimeout(()=>{ if(el.className==='ntload done') el.className='ntload'; },600); }
 }
 /* ---------- Lucide icons: tự vẽ lại mỗi khi giao diện đổi ---------- */
-let _licT=null;
-function ntIcons(){ clearTimeout(_licT); _licT=setTimeout(()=>{ try{ if(window.lucide) lucide.createIcons(); }catch(e){} }, 20); }
-try{ new MutationObserver(ntIcons).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+let _licT=null,_licObs=null;
+function ntIcons(){ clearTimeout(_licT); _licT=setTimeout(()=>{
+  try{ if(window.lucide){ if(_licObs)_licObs.disconnect(); lucide.createIcons(); if(_licObs)_licObs.observe(document.documentElement,{childList:true,subtree:true}); } }catch(e){}
+}, 40); }
+try{ _licObs=new MutationObserver(ntIcons); _licObs.observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
 ntIcons();
 
 /* ---------- Khởi động ---------- */
