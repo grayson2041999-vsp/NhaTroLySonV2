@@ -2004,7 +2004,7 @@ async function ntLog(action,entity,entity_id,house_id,summary){
   try{ await SB.from('nt_activity_log').insert({actor_id:getCurUser()||null,actor_name:curUserName(),action,entity,entity_id:String(entity_id),house_id:house_id||null,summary:summary||''}); }
   catch(e){ console.warn('log fail',e); }
   /* gửi thông báo đẩy cho người khác (số nhảy trên icon kể cả khi app đóng) */
-  try{ SB.functions.invoke('send-push',{body:{actorId:getCurUser(),summary:summary||''}}).catch(()=>{}); }catch(e){}
+  try{ SB.functions.invoke('rapid-task',{body:{actorId:getCurUser(),summary:summary||''}}).catch(()=>{}); }catch(e){}
 }
 const numOrNull=(v)=>{ if(v===''||v==null)return null; const n=Number(String(v).replace(/\D/g,'')); return isNaN(n)?null:n; };
 async function ntApplyOp(op){
