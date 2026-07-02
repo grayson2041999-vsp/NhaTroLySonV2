@@ -591,7 +591,7 @@ function render(){renderTopbar();renderTabs();const c=$('#content');
   else if(APP.screen==='house')renderHouse(c);}
 
 function renderTopbar(){const tb=$('#topbar');
-  const refresh=`<button class="iconbtn refreshbtn" title="Tải mới" onclick="refreshNow()">↻</button>`;
+  const refresh=``; /* bỏ nút mũi tên: dữ liệu tự cập nhật realtime */
   if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${refresh}`;}
   else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" onclick="goEntry()">‹</button>
     <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${refresh}`;}
@@ -1770,7 +1770,7 @@ async function exportContractPdf(ctId){
 function getSync(){try{return JSON.parse(localStorage.getItem('nhaTroLySon_sync'))||{};}catch(e){return {};}}
 function setSync(c){try{localStorage.setItem('nhaTroLySon_sync',JSON.stringify(c));}catch(e){}}
 function effectiveUrl(){return NT.user?'sb':'';} /* chỉ đồng bộ khi đã đăng nhập */
-let _autoTimer=null,_suppressAuto=false,_syncing=false;
+let _autoTimer=null,_suppressAuto=false,_syncing=false,_lastLocalWrite=0,_dataRefreshTimer=null;
 function onDataChanged(){if(_suppressAuto)return;scheduleFlush();}
 /* ===== Hàng đợi thao tác: gửi từng insert/update/delete theo bản ghi ===== */
 function getOutbox(){try{return JSON.parse(localStorage.getItem('nhaTroLySon_outbox'))||[];}catch(e){return [];}}
@@ -1800,6 +1800,7 @@ async function flushOutbox(){
       const q2=getOutbox(); q2.shift(); setOutbox(q2);
     }
     const cfg=getSync();cfg.lastSync=Date.now();setSync(cfg);
+    _lastLocalWrite=Date.now(); /* đánh dấu vừa ghi -> bỏ qua tiếng vọng realtime của chính mình */
   } finally { _syncing=false; }
   if(getOutbox().length) scheduleFlush();
 }
@@ -2103,6 +2104,32 @@ function ntStartRealtime(){
         ()=>{ NT_UNREAD++; ntSetBadge(NT_UNREAD); toast('🔔 Có cập nhật mới'); })
       .subscribe();
   }catch(e){ console.warn('realtime',e); }
+  ntStartDataRealtime();
+}
+/* ---------- Tự cập nhật dữ liệu realtime (kiểu Zalo: người khác đổi -> tự hiện) ---------- */
+function scheduleDataRefresh(){
+  if(Date.now()-_lastLocalWrite < 2500) return; /* bỏ qua tiếng vọng thay đổi của chính mình */
+  clearTimeout(_dataRefreshTimer);
+  _dataRefreshTimer=setTimeout(ntLiveRefresh, 700); /* gộp nhiều thay đổi gần nhau */
+}
+async function ntLiveRefresh(){
+  if(!NT.user||_syncing)return;
+  /* đang mở form/hộp thoại -> chờ, không làm giật màn hình đang nhập */
+  if(($('#modalBg')&&$('#modalBg').classList.contains('show'))||($('#modal2Bg')&&$('#modal2Bg').classList.contains('show'))){
+    _dataRefreshTimer=setTimeout(ntLiveRefresh, 1500); return;
+  }
+  const y=window.scrollY;
+  const ok=await pullFromServer();
+  if(ok){ render(); window.scrollTo(0,y); } /* giữ nguyên vị trí đang xem */
+}
+function ntStartDataRealtime(){
+  if(!NT.user)return;
+  try{
+    let ch=SB.channel('nt_data_'+NT.user.id);
+    ['nt_houses','nt_rooms','nt_contracts','nt_customers','nt_finance','nt_devices','nt_maintenance_logs','nt_locked_months']
+      .forEach(t=>{ ch=ch.on('postgres_changes',{event:'*',schema:'public',table:t}, scheduleDataRefresh); });
+    ch.subscribe();
+  }catch(e){ console.warn('data realtime',e); }
 }
 async function ntOpenNotifications(){
   openModal({title:'Thông báo', bodyHTML:'<div id="ntNotifList" style="max-height:60vh;overflow:auto">Đang tải…</div>',
