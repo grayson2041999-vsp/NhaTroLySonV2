@@ -215,6 +215,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SB = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const SYNC_URL = ""; // không dùng Apps Script nữa
 const NT = { user:null, profiles:[] }; // user: {id, name, role, phone}
+const VAPID_PUBLIC = "BGLehh0uyeRa2ESeN8l_uS2Uh-jpo0xrVvUQxCxR0s6cAOLWjbTPX5sueDtv1MDr77cATGFf1aLgDfNsnCqgza4";
 
 /* ---------- STORE ---------- */
 const STORE = (function(){
@@ -1812,6 +1813,7 @@ function openSync(){const cfg=getSync();
         <div class="kv"><span class="k">Chờ gửi</span><span class="v">${getOutbox().length} thao tác</span></div></div>
       <button class="btn ok block" style="margin-bottom:10px" onclick="closeModal();refreshNow()">↻ Đồng bộ ngay</button>
       <button class="btn block" style="margin-bottom:10px" onclick="ntMigrateImages()">🖼️ Chuyển ảnh máy này lên Supabase</button>
+      <button class="btn block" style="margin-bottom:10px" onclick="ntEnablePush().then(()=>toast('Đã bật thông báo trên máy này','ok'))">🔔 Bật thông báo đẩy trên máy này</button>
       <button class="btn danger block" onclick="ntLogout()">⎋ Đăng xuất</button>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>`});
 }
@@ -2001,6 +2003,8 @@ async function ntPullAll(){
 async function ntLog(action,entity,entity_id,house_id,summary){
   try{ await SB.from('nt_activity_log').insert({actor_id:getCurUser()||null,actor_name:curUserName(),action,entity,entity_id:String(entity_id),house_id:house_id||null,summary:summary||''}); }
   catch(e){ console.warn('log fail',e); }
+  /* gửi thông báo đẩy cho người khác (số nhảy trên icon kể cả khi app đóng) */
+  try{ SB.functions.invoke('send-push',{body:{actorId:getCurUser(),summary:summary||''}}).catch(()=>{}); }catch(e){}
 }
 const numOrNull=(v)=>{ if(v===''||v==null)return null; const n=Number(String(v).replace(/\D/g,'')); return isNaN(n)?null:n; };
 async function ntApplyOp(op){
@@ -2103,13 +2107,19 @@ function ntBadgeEl(){
   }
   return b;
 }
-function ntSetBadge(n){ const c=ntBadgeEl().querySelector('#ntBellCount'); if(n>0){c.textContent=n>99?'99+':n;c.style.display='block';}else{c.style.display='none';} }
+function ntSetBadge(n){
+  const c=ntBadgeEl().querySelector('#ntBellCount');
+  if(n>0){c.textContent=n>99?'99+':n;c.style.display='block';}else{c.style.display='none';}
+  /* số đỏ trên ICON app ngoài màn hình chính (PWA đã cài) */
+  try{ if('setAppBadge' in navigator){ if(n>0) navigator.setAppBadge(n); else navigator.clearAppBadge(); } }catch(e){}
+}
 async function ntRefreshBadge(){
   if(!NT.user)return;
   try{ const r=await SB.from('nt_notifications').select('id',{count:'exact',head:true}).eq('user_id',NT.user.id).is('read_at',null); NT_UNREAD=r.count||0; ntSetBadge(NT_UNREAD);}catch(e){}
 }
 function ntStartRealtime(){
   if(!NT.user)return;
+  ntEnablePush(); /* đăng ký nhận đẩy + xin quyền */
   ntBadgeEl(); ntRefreshBadge();
   try{
     SB.channel('nt_notif_'+NT.user.id)
@@ -2138,6 +2148,26 @@ async function ntOpenNotifications(){
     await SB.from('nt_notifications').update({read_at:new Date().toISOString()}).eq('user_id',NT.user.id).is('read_at',null);
     NT_UNREAD=0; ntSetBadge(0);
   }catch(e){ const box=document.getElementById('ntNotifList'); if(box)box.innerHTML='<div class="empty">Không tải được thông báo</div>'; }
+}
+/* ---------- Web Push: đăng ký nhận đẩy (số nhảy trên icon cả khi app đóng) ---------- */
+function urlB64ToUint8(base64){
+  const pad='='.repeat((4-base64.length%4)%4);
+  const b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(b); const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i); return arr;
+}
+async function ntEnablePush(){
+  if(!NT.user||!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  try{
+    const reg=await navigator.serviceWorker.register('sw.js');
+    let perm=Notification.permission;
+    if(perm==='default') perm=await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Chưa bật thông báo — vào Cài đặt để cho phép','err'); return; }
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){ sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)}); }
+    const j=sub.toJSON();
+    await SB.from('nt_push_subscriptions').upsert({user_id:NT.user.id, endpoint:sub.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth},{onConflict:'endpoint'});
+  }catch(e){ console.warn('Bật đẩy lỗi:',e); }
 }
 
 /* ---------- Khởi động ---------- */
