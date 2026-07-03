@@ -697,7 +697,7 @@ function houseForm(id){
   const h=editing?JSON.parse(JSON.stringify(STORE.house(id))):{id:uid(),name:'',address:'',rooms:[],
     manager:{name:'',birthYear:'',signature:newImg()},contractStart:'',contractEnd:'',password:'',passwordHint:'',contracts:[]};
   if(!h.manager)h.manager={name:'',birthYear:''};h.manager.signature=normalizeImg(h.manager.signature);
-  h.dieu4=h.dieu4||[];h.dieu5=h.dieu5||[];h.dieu6=h.dieu6||[];
+  h.dieu4=h.dieu4||[];h.dieu5=h.dieu5||[];h.dieu6=h.dieu6||[];h.expenseItems=h.expenseItems||[];
   window._houseDraft=h;
   openModal({title:editing?'Chỉnh sửa nhà':'Thêm nhà mới',
     bodyHTML:`
@@ -724,12 +724,14 @@ function houseForm(id){
         <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')"><i data-lucide="plus"></i> Thêm mục</button></div>
       <div class="field"><label>Điều 6 — Thỏa thuận khác</label>
         <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')"><i data-lucide="plus"></i> Thêm mục</button></div>
-      <div class="sectitle">Bảo mật</div>
-      <div class="field"><label>Mật khẩu của nhà <span class="req">*</span></label><input id="f_pw" type="text" value="${esc(h.password)}" placeholder="Mật khẩu để sửa/xoá nhà"></div>
-      <div class="field"><label>Câu hỏi gợi ý mật khẩu</label><input id="f_hint" value="${esc(h.passwordHint)}" placeholder="VD: Tên thú cưng đầu tiên?"></div>`,
+      <div class="sectitle">Khoản chi cố định</div>
+      <div class="muted" style="font-size:12px;margin:-4px 2px 8px">Khai sẵn các khoản chi hay dùng của nhà. Khi nhập Chi phí sẽ chọn nhanh từ đây; khoản nào có số tiền cố định sẽ tự điền.</div>
+      <div id="expList" class="inline-list"></div>
+      <button class="btn ghost sm" type="button" onclick="addExpRow()"><i data-lucide="plus"></i> Thêm khoản chi</button>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="saveHouse">${editing?'Lưu thay đổi':'Tạo nhà'}</button>`,
     onMount:(m)=>{window._roomDraft=h.rooms.map(r=>({...r,equipment:(r.equipment||[]).map(e=>({...e}))}));renderRoomRows();
       renderDieu('dieu4');renderDieu('dieu5');renderDieu('dieu6');
+      window._expDraft=(h.expenseItems||[]).map(x=>({...x}));renderExpRows();
       $('#saveHouse',m).onclick=()=>saveHouseForm(h.id,editing);}
   });
 }
@@ -782,21 +784,33 @@ function renderDieu(which){const box=$('#'+which+'List');if(!box)return;const ar
     <button class="delx" type="button" onclick="removeDieu('${which}',${i})"><i data-lucide="trash-2"></i></button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có mục nào</div>`);}
 function addDieu(which){syncDieuDom();(window._houseDraft[which]=window._houseDraft[which]||[]).push('');renderDieu(which);}
 function removeDieu(which,i){syncDieuDom();window._houseDraft[which].splice(i,1);renderDieu(which);}
+/* ----- Khoản chi cố định của nhà ----- */
+function renderExpRows(){const box=$('#expList');if(!box)return;const arr=window._expDraft||[];
+  box.innerHTML=arr.length?arr.map((x,i)=>`<div class="chiprow">
+    <input style="flex:2" data-exp="${i}" data-fld="name" value="${esc(x.name||'')}" placeholder="Tên khoản chi (VD: Tiền điện)">
+    <input style="flex:1.4" data-exp="${i}" data-fld="amount" inputmode="numeric" value="${esc(x.amount?maskThousand(x.amount):'')}" placeholder="Số tiền (nếu có)" oninput="this.value=maskThousand(this.value)">
+    <button class="delx" type="button" onclick="removeExpRow(${i})"><i data-lucide="trash-2"></i></button></div>`).join(''):`<div class="muted" style="font-size:12px;padding:4px">Chưa có khoản chi cố định</div>`;
+}
+function syncExpDom(){const box=$('#expList');if(!box||!window._expDraft)return;
+  box.querySelectorAll('[data-exp]').forEach(el=>{const i=+el.dataset.exp,x=window._expDraft[i];if(!x)return;const f=el.dataset.fld;
+    if(f==='name')x.name=el.value; else if(f==='amount')x.amount=el.value.replace(/\D/g,'');});}
+function addExpRow(){syncExpDom();(window._expDraft=window._expDraft||[]).push({id:uid(),name:'',amount:''});renderExpRows();}
+function removeExpRow(i){syncExpDom();window._expDraft.splice(i,1);renderExpRows();}
 function saveHouseForm(id,editing){
-  syncRoomDom();syncDieuDom();
-  const name=$('#f_name').value.trim(),pw=$('#f_pw').value;
+  syncRoomDom();syncDieuDom();syncExpDom();
+  const name=$('#f_name').value.trim();
   if(!name){toast('Nhập tên nhà','err');return;}
-  if(!pw){toast('Nhập mật khẩu của nhà','err');return;}
   const cs=myToIso($('#f_cs').value);if(cs===null){toast('Tháng/năm bắt đầu không hợp lệ (MM/YYYY)','err');return;}
   const ce=myToIso($('#f_ce').value);if(ce===null){toast('Tháng/năm kết thúc không hợp lệ (MM/YYYY)','err');return;}
   const rooms=window._roomDraft.filter(r=>r.name.trim()).map(r=>({id:r.id||uid(),name:r.name.trim(),type:r.type,
     maxPeople:(r.maxPeople||'').toString().trim(),
     equipment:(r.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>({name:e.name.trim(),condition:(e.condition||'').trim()}))}));
   const cleanDieu=a=>(a||[]).map(s=>(s||'').trim()).filter(Boolean);
+  const expenseItems=(window._expDraft||[]).filter(x=>(x.name||'').trim()).map(x=>({id:x.id||uid(),name:(x.name||'').trim(),amount:(x.amount||'').toString().replace(/\D/g,'')}));
   const patch={name,address:$('#f_addr').value.trim(),rooms,
     manager:{name:$('#f_mgr').value.trim(),birthYear:$('#f_mgryob').value.trim(),signature:window._houseDraft.manager.signature},
-    contractStart:cs,contractEnd:ce,password:pw,passwordHint:$('#f_hint').value.trim(),
-    dieu4:cleanDieu(window._houseDraft.dieu4),dieu5:cleanDieu(window._houseDraft.dieu5),dieu6:cleanDieu(window._houseDraft.dieu6)};
+    contractStart:cs,contractEnd:ce,
+    dieu4:cleanDieu(window._houseDraft.dieu4),dieu5:cleanDieu(window._houseDraft.dieu5),dieu6:cleanDieu(window._houseDraft.dieu6),expenseItems};
   if(editing){STORE.updateHouse(id,patch);toast('Đã lưu thay đổi','ok');}
   else{STORE.addHouse({id,...patch,contracts:[]});toast('Đã tạo nhà','ok');}
   const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;
@@ -1263,13 +1277,13 @@ function renderFinanceTab(c,h,kind){
   let rows='';
   if(list.length){
     const col1=kind==='chi'?'Nội dung':'Đối tượng';
-    const noteHead=kind==='chi'?'':'<th class="c-note">Ghi chú</th>';
+    const noteHead='';
     // map key -> tên rút gọn (chỉ tab Doanh thu); khoản đã nhập cũng tự rút gọn theo
     const tShort={};if(kind==='thu')financeTargets(h).forEach(t=>{tShort[t.key]=t.short;});
     rows=`<div class="tablewrap"><table class="fin-table fin-${kind}">
       <thead><tr><th class="c-stt">STT</th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th>${noteHead}<th class="c-nhap"><button class="linkbtn" style="font:inherit;letter-spacing:inherit;text-transform:inherit;padding:0" onclick="openFinFilter()">Nhập ▾</button></th>${locked?'':'<th class="c-act"></th>'}</tr></thead>
       <tbody>${list.map((e,i)=>{const col=personColor(e.userId||('nm:'+(e.userName||'?')));return `<tr style="background:${col.bg}">
-        <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td><td class="c-obj">${esc((kind==='thu'&&tShort[e.targetKey])||e.label)}</td><td class="c-money">${money(e.amount)}</td>${kind==='chi'?'':`<td class="c-note">${e.note?`<button class="linkbtn" onclick="viewNote('${e.id}')">Xem</button>`:''}</td>`}<td class="c-nhap">${esc(e.userName||'')}</td>
+        <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td><td class="c-obj">${esc(((kind==='thu'&&tShort[e.targetKey])||e.label)+(e.note?' ('+e.note+')':''))}</td><td class="c-money">${money(e.amount)}</td><td class="c-nhap">${esc(e.userName||'')}</td>
         ${locked?'':`<td class="c-act"><button class="linkbtn" onclick="financeForm('${kind}','${e.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="deleteFinance('${e.id}')">Xoá</button></td>`}
       </tr>`;}).join('')}</tbody></table></div>`;
   } else { rows=`<div class="empty"><div class="ic">${kind==='thu'?'💵':'🧾'}</div>${fp?`Không có khoản ${title.toLowerCase()} nào do <b>${esc(fp)}</b> nhập.`:`Chưa có khoản ${title.toLowerCase()} nào trong tháng này.`}</div>`; }
@@ -1306,11 +1320,21 @@ function financeForm(kind,id){
   const title=kind==='thu'?'doanh thu':'chi phí';
   let body;
   if(kind==='chi'){
+    const items=(h.expenseItems||[]);
+    const isCustomChi=editing&&!items.some(it=>it.name===e.label);
     body=`
-      <div class="field"><label>Nội dung chi phí <span class="req">*</span></label>
-        <input id="fContent" value="${esc(e.label||'')}" placeholder="VD: Tiền điện tháng 5"></div>
+      <div class="field"><label>Khoản chi <span class="req">*</span></label>
+        <select id="fTarget" onchange="onChiTargetChange()">
+          <option value="">— Chọn khoản chi —</option>
+          ${items.map((it,idx)=>`<option value="item:${idx}" ${(!isCustomChi&&e.label===it.name)?'selected':''}>${esc(it.name)}${it.amount?(' — '+money(it.amount)):''}</option>`).join('')}
+          <option value="__other__" ${isCustomChi?'selected':''}>✎ Khác — tự nhập…</option>
+        </select>
+        ${items.length?'':'<div class="hint">Chưa có khoản chi cố định. Thêm ở <b>Quản lý hệ thống → Sửa nhà</b>, hoặc chọn "Khác".</div>'}</div>
+      <div id="fChiCustom"></div>
       <div class="field"><label>Số tiền (₫) <span class="req">*</span></label>
         <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="VD: 500.000"></div>
+      <div class="field"><label>Ghi chú</label>
+        <input id="fNote" value="${esc(e.note||'')}" placeholder="Nhập kỳ thanh toán của khoản này"></div>
       <div class="hint">Người nhập: <b>${esc(curUserName()||'(chưa chọn)')}</b> · Tháng: <b>${esc(isoToMy(am))}</b></div>`;
   }else{
     const targets=financeTargets(h);
@@ -1330,17 +1354,28 @@ function financeForm(kind,id){
       <div id="fCustomZone"></div>
       <div id="fAmountZone"></div>
       <div class="field"><label>Ghi chú</label>
-        <textarea id="fNote" rows="2" style="resize:vertical">${esc(e.note||'')}</textarea></div>
+        <textarea id="fNote" rows="2" style="resize:vertical" placeholder="Nhập kỳ thanh toán của khoản này">${esc(e.note||'')}</textarea></div>
       <div class="hint">Người nhập: <b>${esc(curUserName()||'(chưa chọn)')}</b> · Tháng: <b>${esc(isoToMy(am))}</b></div>`;
   }
   openModal({title:(editing?'Sửa ':'Thêm ')+title,bodyHTML:body,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="fSave">${editing?'Lưu':'Thêm'}</button>`,
     onMount:(m)=>{$('#fSave',m).onclick=()=>saveFinance(kind,e.id,editing);
-      if(kind==='thu'){window._finEdit=e;window._finBreakdown=null;renderCustomZone();renderAmountZone();}}
+      if(kind==='thu'){window._finEdit=e;window._finBreakdown=null;renderCustomZone();renderAmountZone();}
+      if(kind==='chi'){window._finEdit=e;ntChiCustomZone();}}
   });
 }
 /* ----- Việc 2: vùng nhập số tiền thay đổi theo đối tượng (KTX / phòng trọ) ----- */
 function onFinTargetChange(){const e=window._finEdit;if(e){e.amount='';e.breakdown=null;}window._finBreakdown=null;renderCustomZone();renderAmountZone();}
+/* ----- Chi phí: vùng tự nhập tên khoản (khi chọn "Khác") + tự điền tiền cố định ----- */
+function ntChiCustomZone(){const h=STORE.house(APP.houseId);const sel=$('#fTarget');const zone=$('#fChiCustom');if(!sel||!zone)return;
+  if(sel.value==='__other__'){const e=window._finEdit||{};const items=(h.expenseItems||[]);const cur=(!items.some(it=>it.name===e.label))?(e.label||''):'';
+    zone.innerHTML=`<div class="field"><label>Tên khoản chi <span class="req">*</span></label><input id="fOtherLabel" value="${esc(cur)}" placeholder="VD: Sửa ống nước"></div>`;}
+  else zone.innerHTML='';
+}
+function onChiTargetChange(){const h=STORE.house(APP.houseId);const sel=$('#fTarget');if(!sel)return;
+  ntChiCustomZone();
+  if(sel.value.indexOf('item:')===0){const it=(h.expenseItems||[])[Number(sel.value.slice(5))];if(it&&it.amount){const fa=$('#fAmount');if(fa)fa.value=maskThousand(it.amount);}}
+}
 /* ----- Vùng tự nhập tên đối tượng/khoản thu khác ----- */
 function renderCustomZone(){
   const zone=$('#fCustomZone');if(!zone)return;
@@ -1419,8 +1454,13 @@ function saveFinance(kind,id,editing){
   const amount=($('#fAmount').value||'').replace(/[^\d]/g,'');if(!amount){toast('Nhập số tiền','err');return;}
   let entry;
   if(kind==='chi'){
-    const content=$('#fContent').value.trim();if(!content){toast('Nhập nội dung chi phí','err');return;}
-    entry={id,kind,month:am,targetType:'',targetKey:'',label:content,amount:amount,note:'',userId:getCurUser(),userName:curUserName(),ts:Date.now()};
+    const key=($('#fTarget')&&$('#fTarget').value)||'';
+    let label='';
+    if(key==='__other__'){ label=($('#fOtherLabel')&&$('#fOtherLabel').value.trim())||''; if(!label){toast('Nhập tên khoản chi','err');return;} }
+    else if(key.indexOf('item:')===0){ const it=(h.expenseItems||[])[Number(key.slice(5))]; label=it?it.name:''; }
+    if(!label){toast('Chọn khoản chi','err');return;}
+    const note=($('#fNote')&&$('#fNote').value.trim())||'';
+    entry={id,kind,month:am,targetType:'',targetKey:'',label,amount:amount,note:note,userId:getCurUser(),userName:curUserName(),ts:Date.now()};
   }else{
     const key=$('#fTarget').value;if(!key){toast('Chọn đối tượng','err');return;}
     if(key==='__other__'){
@@ -1430,8 +1470,7 @@ function saveFinance(kind,id,editing){
     }else{
       const t=financeTargets(h).find(x=>x.key===key)||{};
       const bd=window._finBreakdown||(window._finEdit&&window._finEdit.breakdown)||null;
-      let note=$('#fNote').value.trim();
-      if(!note&&bd)note=troNoteText(bd);
+      const note=$('#fNote').value.trim();
       entry={id,kind,month:am,targetType:t.type||'',targetKey:key,label:t.label||'',amount:amount,note:note,userId:getCurUser(),userName:curUserName(),ts:Date.now()};
       if(bd)entry.breakdown=bd;
     }
@@ -2024,7 +2063,7 @@ async function ntPullAll(){
       dieu4:cl.dieu4||[],dieu5:cl.dieu5||[],dieu6:cl.dieu6||[],
       rooms:(R[h.id]||[]).map(r=>({id:r.id,name:r.name||'',type:r.type||'KTX',maxPeople:r.max_people||'',equipment:r.equipment||[]})),
       contracts:conts, finance:fins, devices:devs,
-      lockedMonths:(LM[h.id]||[]).map(x=>x.month), cashflow:h.cashflow||[]};
+      lockedMonths:(LM[h.id]||[]).map(x=>x.month), cashflow:h.cashflow||[], expenseItems:h.expense_items||[]};
   });
   const am=((settings.data||[]).find(s=>s.key==='activeMonth')||{}).value||'';
   return {houses:houseList, users:NT.profiles.map(p=>({id:p.id,name:p.name})), activeMonth:am};
@@ -2044,7 +2083,7 @@ async function ntApplyOp(op){
     const h=op.house, m=h.manager||{};
     let r=await SB.from('nt_houses').upsert({id:h.id,name:h.name||null,address:h.address||null,manager_name:m.name||null,manager_birth_year:m.birthYear||null,
       manager_signature_url:(m.signature||{}).url||null,contract_start:h.contractStart||null,contract_end:h.contractEnd||null,
-      clauses:{dieu4:h.dieu4||[],dieu5:h.dieu5||[],dieu6:h.dieu6||[]},cashflow:h.cashflow||[],created_by:me}); if(r.error)throw r.error;
+      clauses:{dieu4:h.dieu4||[],dieu5:h.dieu5||[],dieu6:h.dieu6||[]},cashflow:h.cashflow||[],expense_items:h.expenseItems||[],created_by:me}); if(r.error)throw r.error;
     const keep=new Set((h.rooms||[]).map(x=>x.id));
     const ex=await SB.from('nt_rooms').select('id').eq('house_id',h.id); if(ex.error)throw ex.error;
     const del=(ex.data||[]).map(x=>x.id).filter(id=>!keep.has(id));
