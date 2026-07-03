@@ -412,7 +412,7 @@ function fileToResizedDataURL(file,maxW,q){
 }
 
 /* ---------- app state ---------- */
-const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'xe',finFilter:'',finOpen:''};
+const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'xe',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
 
 /* ---------- MODAL ---------- */
 function openModal({title,bodyHTML,footHTML,onMount}){
@@ -1097,7 +1097,8 @@ function renderVehicles(box){
 /* ---------- TAB HỢP ĐỒNG ---------- */
 function renderTabHopDong(c,h){
   c.innerHTML=`
-    <button class="btn lg block" style="margin-bottom:12px" onclick="chooseContractType()"><i data-lucide="plus"></i> Thêm hợp đồng</button>
+    <button class="btn lg block" style="margin-bottom:10px" onclick="chooseContractType()"><i data-lucide="plus"></i> Thêm hợp đồng</button>
+    <div class="field" style="margin-bottom:10px"><input id="hdSearch" placeholder="Tìm theo tên · CCCD · SĐT" value="${esc(APP.hdSearch||'')}" oninput="APP.hdSearch=this.value;renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId))"></div>
     <div id="hdBody"></div>`;
   renderContractTable($('#hdBody',c),h);
 }
@@ -1106,22 +1107,41 @@ function chooseContractType(){openModal({title:'Thêm hợp đồng',
     <button class="btn lg block" style="margin-bottom:10px;background:var(--ktx)" onclick="contractForm('KTX')">🛏️ Hợp đồng KTX</button>
     <button class="btn lg block" style="background:var(--tro)" onclick="contractForm('TRO')"><i data-lucide="house"></i> Hợp đồng phòng trọ</button>`});}
 
+function setHdOpen(key){APP.hdOpen=(APP.hdOpen===key?'':key);renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId));}
 function renderContractTable(box,h){
-  const contracts=(h.contracts||[]).filter(c=>!isEnded(c));let people=[];
-  contracts.forEach(ct=>{const room=h.rooms.find(r=>r.id===ct.roomId);const roomName=room?room.name:'(phòng đã xoá)';
-    if(ct.type==='KTX')people.push({roomName,name:ct.customer.name,cccd:ct.customer.cccd,phone:ct.customer.phone,ctId:ct.id});
-    else (ct.customers||[]).forEach(p=>people.push({roomName,name:p.name,cccd:p.cccd,phone:p.phone,ctId:ct.id}));});
-  if(!people.length){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="file-text"></i></div>Chưa có hợp đồng nào.<br>Bấm <b>Thêm hợp đồng</b> để bắt đầu.</div>`;return;}
-  const byRoom={};people.forEach(p=>{(byRoom[p.roomName]=byRoom[p.roomName]||[]).push(p);});
-  const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
-  let rows='';
-  roomNames.forEach(rn=>{rows+=`<tr class="roomhead"><td colspan="5"><i data-lucide="house"></i> Phòng ${esc(rn)} — ${byRoom[rn].length} người</td></tr>`;
-    byRoom[rn].forEach((p,i)=>{rows+=`<tr><td class="c-stt">${i+1}</td><td>${esc(p.name)}</td><td class="c-cccd">${esc(p.cccd||'—')}</td>
-      <td class="c-phone">${esc(p.phone||'—')}</td>
-      <td class="c-act"><button class="linkbtn" onclick="showPersonInfo('${p.ctId}')">Xem</button></td></tr>`;});});
-  box.innerHTML=`<div class="muted" style="margin-bottom:10px">Tổng: <b>${people.length}</b> người · <b>${contracts.length}</b> hợp đồng</div>
-    <div class="tablewrap"><table class="hd-table"><thead><tr><th class="c-stt">#</th><th>Họ và tên</th><th class="c-cccd">CCCD</th><th class="c-phone">SĐT</th><th class="c-act">Khác</th></tr></thead>
-    <tbody>${rows}</tbody></table></div>`;
+  const q=((APP.hdSearch||'').trim().toLowerCase());
+  const natCmp=(a,b)=>String(a||'').localeCompare(String(b||''),'vi',{numeric:true});
+  const contracts=(h.contracts||[]).filter(c=>!isEnded(c));
+  const byRoomId={};let totalPeople=0;
+  contracts.forEach(ct=>{const arr=byRoomId[ct.roomId]=byRoomId[ct.roomId]||[];
+    if(ct.type==='KTX'){if(ct.customer){arr.push({name:ct.customer.name,cccd:ct.customer.cccd,phone:ct.customer.phone,ctId:ct.id,type:'KTX'});totalPeople++;}}
+    else (ct.customers||[]).forEach(p=>{arr.push({name:p.name,cccd:p.cccd,phone:p.phone,ctId:ct.id,type:'TRO'});totalPeople++;});});
+  if(!(h.rooms||[]).length && !totalPeople){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="file-text"></i></div>Chưa có phòng/hợp đồng nào.<br>Thêm phòng ở <b>Quản lý hệ thống</b>, rồi bấm <b>Thêm hợp đồng</b>.</div>`;return;}
+  const match=p=>!q||[p.name,p.cccd,p.phone].some(v=>String(v||'').toLowerCase().includes(q));
+  const rooms=(h.rooms||[]).slice().sort((a,b)=>natCmp(a.name,b.name));
+  const roomIds=new Set(rooms.map(r=>r.id));
+  let ri=0,rows='';
+  const renderPeopleRows=(list)=>list.map((p,idx)=>{const key=String(ri++);const open=(APP.hdOpen===key);
+    return `<tr class="finrow${open?' open':''}" onclick="setHdOpen('${key}')" style="cursor:pointer">
+      <td class="c-stt">${idx+1}</td><td>${esc(p.name)}</td><td class="c-cccd">${esc(p.cccd||'—')}</td><td class="c-phone">${esc(p.phone||'—')}</td></tr>`+
+      (open?`<tr class="finact"><td class="c-stt"></td><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn sec sm" onclick="event.stopPropagation();showPersonInfo('${p.ctId}')"><i data-lucide="eye"></i> Xem</button>
+        <button class="btn sm" onclick="event.stopPropagation();contractForm('${p.type}','${p.ctId}')"><i data-lucide="pencil"></i> Sửa</button>
+        ${p.type==='KTX'?`<button class="btn ok sm" onclick="event.stopPropagation();exportContractPdf('${p.ctId}')"><i data-lucide="file-text"></i> PDF</button>`:''}
+      </div></td></tr>`:'');}).join('');
+  rooms.forEach(room=>{const all=(byRoomId[room.id]||[]);const list=all.filter(match);
+    if(q && !list.length)return;
+    const typeLbl=room.type==='KTX'?'KTX':'Trọ';
+    const occ=all.length?(room.maxPeople?(all.length+'/'+room.maxPeople+' người'):(all.length+' người')):'trống';
+    rows+=`<tr class="roomhead"><td colspan="4"><i data-lucide="house"></i> Phòng ${esc(room.name)} · ${typeLbl} · ${occ}</td></tr>`;
+    if(!all.length){ if(!q)rows+=`<tr><td class="c-stt"></td><td colspan="3" class="muted" style="font-size:13px">Phòng trống</td></tr>`; }
+    else rows+=renderPeopleRows(list);
+  });
+  const orphan=[];Object.keys(byRoomId).forEach(rid=>{if(!roomIds.has(rid))byRoomId[rid].forEach(p=>{if(match(p))orphan.push(p);});});
+  if(orphan.length){rows+=`<tr class="roomhead"><td colspan="4"><i data-lucide="house"></i> (Phòng đã xoá)</td></tr>`+renderPeopleRows(orphan);}
+  box.innerHTML=`<div class="muted" style="margin-bottom:10px">Tổng: <b>${totalPeople}</b> người · <b>${contracts.length}</b> hợp đồng${q?` · lọc "<b>${esc(q)}</b>"`:''}</div>
+    <div class="tablewrap"><table class="hd-table"><thead><tr><th class="c-stt">No</th><th>Họ và tên</th><th class="c-cccd">CCCD</th><th class="c-phone">SĐT</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="4" class="muted" style="text-align:center;padding:16px">Không tìm thấy khách phù hợp</td></tr>`}</tbody></table></div>`;
 }
 
 function imgsRow(p){
@@ -2049,8 +2069,8 @@ function importData(input){const f=input.files[0];if(!f)return;const r=new FileR
 /* ---------- navigation ---------- */
 function goEntry(){APP.screen='entry';APP.houseId=null;scrollTop();render();}
 function goSystem(){APP.screen='system';scrollTop();render();}
-function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';APP.finOpen='';scrollTop();render();}
-function setTab(t){APP.tab=t;APP.finFilter='';APP.finOpen='';scrollTop();render();}
+function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';scrollTop();render();}
+function setTab(t){APP.tab=t;APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';scrollTop();render();}
 function scrollTop(){window.scrollTo(0,0);}
 
 /* ============================================================ SUPABASE — ĐĂNG NHẬP & DỮ LIỆU ============================================================ */
