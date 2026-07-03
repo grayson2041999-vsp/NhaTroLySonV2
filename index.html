@@ -1648,7 +1648,7 @@ function nowLocalDT(){const d=new Date();const p=n=>String(n).padStart(2,'0');re
 function deviceLogCost(d){return (d.logs||[]).reduce((s,l)=>s+(Number(l.cost)||0),0);}
 function deviceLastTs(d){let m='';(d.logs||[]).forEach(l=>{if(l.ts&&String(l.ts)>m)m=String(l.ts);});return m;}
 function _monthsSince(ts){if(!ts)return 1e9;const d=new Date(ts);if(isNaN(d))return 1e9;return (Date.now()-d.getTime())/2629800000;}
-function deviceOverdue(d){const cyc=Number(d.cycleMonths)||0;if(!cyc)return false;const ts=deviceLastTs(d);if(!ts)return true;const due=new Date(ts);if(isNaN(due))return false;due.setMonth(due.getMonth()+cyc);return Date.now()>due.getTime();}
+function deviceOverdue(d){const cyc=Number(d.cycleMonths)||0;if(!cyc)return false;const ts=deviceLastTs(d);if(!ts)return true;const due=new Date(ts);if(isNaN(due))return false;due.setDate(due.getDate()+cyc);return Date.now()>due.getTime();}
 function setDevOpen(id){APP.devOpen=(APP.devOpen===id?'':id);APP.devLogOpen='';renderTkBody();}
 function setDevLogOpen(k){APP.devLogOpen=(APP.devLogOpen===k?'':k);renderTkBody();}
 function renderTabThietBi(c,h){
@@ -1694,7 +1694,7 @@ function renderTabThietBi(c,h){
         <div style="flex:1;min-width:0">
           <div style="font-weight:700">${esc(d.name||'')}</div>
           <div style="margin-top:2px;font-weight:700;color:${overdue?'#b45309':'var(--text)'}">${lastLine}${badge}</div>
-          <div class="muted" style="font-size:12px;margin-top:2px">${cnt} lần · ${money(tot)}${cyc?` · chu kỳ ${cyc} tháng`:''}</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">${cnt} lần · ${money(tot)}${cyc?` · chu kỳ ${cyc} ngày`:''}</div>
         </div>
         <i data-lucide="${open?'chevron-up':'chevron-down'}" style="color:var(--muted)"></i>
       </div>${expanded}</div>`;
@@ -1710,9 +1710,9 @@ function deviceForm(id){
       <input id="dName" value="${esc(d.name||'')}" placeholder="VD: Máy giặt tầng 1"></div>
     <div class="field"><label>Thông tin thiết bị</label>
       <textarea id="dInfo" rows="3" style="resize:vertical" placeholder="VD: Hiệu Toshiba 8kg, mua 2024, đặt ở khu giặt chung">${esc(d.info||'')}</textarea></div>
-    <div class="field"><label>Chu kỳ bảo dưỡng (tháng)</label>
-      <input id="dCycle" inputmode="numeric" value="${esc(d.cycleMonths||'')}" placeholder="VD: 6 — để trống nếu không cần nhắc" oninput="this.value=this.value.replace(/\\D/g,'')">
-      <div class="hint">App sẽ báo "đến hạn" khi quá số tháng này kể từ lần bảo dưỡng gần nhất.</div></div>`;
+    <div class="field"><label>Chu kỳ bảo dưỡng (ngày)</label>
+      <input id="dCycle" inputmode="numeric" value="${esc(d.cycleMonths||'')}" placeholder="VD: 180 — để trống nếu không cần nhắc" oninput="this.value=this.value.replace(/\\D/g,'')">
+      <div class="hint">App sẽ báo "đến hạn" khi quá số ngày này kể từ lần bảo dưỡng gần nhất.</div></div>`;
   openModal({title:(editing?'Sửa ':'Thêm ')+'thiết bị',bodyHTML:body,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="dSave">${editing?'Lưu':'Thêm'}</button>`,
     onMount:(m)=>{$('#dSave',m).onclick=()=>saveDevice(d.id,editing);}});
