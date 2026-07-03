@@ -1410,7 +1410,7 @@ function financeForm(kind,id){
       <div class="field"><label>Khoản chi <span class="req">*</span></label>
         <select id="fTarget" onchange="onChiTargetChange()">
           <option value="">— Chọn khoản chi —</option>
-          ${items.map((it,idx)=>`<option value="item:${idx}" ${(!isCustomChi&&e.label===it.name)?'selected':''}>${esc(it.name)}${it.amount?(' — '+money(it.amount)):''}</option>`).join('')}
+          ${items.map((it,idx)=>`<option value="item:${idx}" ${(!isCustomChi&&e.label===it.name)?'selected':''}>${esc(it.name)}</option>`).join('')}
           <option value="__other__" ${isCustomChi?'selected':''}>✎ Khác — tự nhập…</option>
         </select>
         ${items.length?'':'<div class="hint">Chưa có khoản chi cố định. Thêm ở <b>Quản lý hệ thống → Sửa nhà</b>, hoặc chọn "Khác".</div>'}</div>
