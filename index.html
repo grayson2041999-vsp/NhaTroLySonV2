@@ -1123,25 +1123,26 @@ function renderContractTable(box,h){
   let ri=0,rows='';
   const renderPeopleRows=(list)=>list.map((p,idx)=>{const key=String(ri++);const open=(APP.hdOpen===key);
     return `<tr class="finrow${open?' open':''}" onclick="setHdOpen('${key}')" style="cursor:pointer">
-      <td class="c-stt">${idx+1}</td><td>${esc(p.name)}</td><td class="c-cccd">${esc(p.cccd||'—')}</td><td class="c-phone">${esc(p.phone||'—')}</td></tr>`+
-      (open?`<tr class="finact"><td class="c-stt"></td><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <td class="c-stt">${idx+1}</td><td>${esc(p.name)}</td><td class="c-phone">${esc(p.phone||'—')}</td></tr>`+
+      (open?`<tr class="finact"><td class="c-stt"></td><td colspan="2" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
         <button class="btn sec sm" onclick="event.stopPropagation();showPersonInfo('${p.ctId}')"><i data-lucide="eye"></i> Xem</button>
         <button class="btn sm" onclick="event.stopPropagation();contractForm('${p.type}','${p.ctId}')"><i data-lucide="pencil"></i> Sửa</button>
         ${p.type==='KTX'?`<button class="btn ok sm" onclick="event.stopPropagation();exportContractPdf('${p.ctId}')"><i data-lucide="file-text"></i> PDF</button>`:''}
+        <button class="btn danger sm" onclick="event.stopPropagation();deleteContract('${p.ctId}')"><i data-lucide="trash-2"></i> Xoá</button>
       </div></td></tr>`:'');}).join('');
   rooms.forEach(room=>{const all=(byRoomId[room.id]||[]);const list=all.filter(match);
     if(q && !list.length)return;
     const typeLbl=room.type==='KTX'?'KTX':'Trọ';
     const occ=all.length?(room.maxPeople?(all.length+'/'+room.maxPeople+' người'):(all.length+' người')):'trống';
-    rows+=`<tr class="roomhead"><td colspan="4"><i data-lucide="house"></i> Phòng ${esc(room.name)} · ${typeLbl} · ${occ}</td></tr>`;
-    if(!all.length){ if(!q)rows+=`<tr><td class="c-stt"></td><td colspan="3" class="muted" style="font-size:13px">Phòng trống</td></tr>`; }
+    rows+=`<tr class="roomhead"><td colspan="3"><i data-lucide="house"></i> Phòng ${esc(room.name)} · ${typeLbl} · ${occ}</td></tr>`;
+    if(!all.length){ if(!q)rows+=`<tr><td class="c-stt"></td><td colspan="2" class="muted" style="font-size:13px">Phòng trống</td></tr>`; }
     else rows+=renderPeopleRows(list);
   });
   const orphan=[];Object.keys(byRoomId).forEach(rid=>{if(!roomIds.has(rid))byRoomId[rid].forEach(p=>{if(match(p))orphan.push(p);});});
-  if(orphan.length){rows+=`<tr class="roomhead"><td colspan="4"><i data-lucide="house"></i> (Phòng đã xoá)</td></tr>`+renderPeopleRows(orphan);}
+  if(orphan.length){rows+=`<tr class="roomhead"><td colspan="3"><i data-lucide="house"></i> (Phòng đã xoá)</td></tr>`+renderPeopleRows(orphan);}
   box.innerHTML=`<div class="muted" style="margin-bottom:10px">Tổng: <b>${totalPeople}</b> người · <b>${contracts.length}</b> hợp đồng${q?` · lọc "<b>${esc(q)}</b>"`:''}</div>
-    <div class="tablewrap"><table class="hd-table"><thead><tr><th class="c-stt">No</th><th>Họ và tên</th><th class="c-cccd">CCCD</th><th class="c-phone">SĐT</th></tr></thead>
-    <tbody>${rows||`<tr><td colspan="4" class="muted" style="text-align:center;padding:16px">Không tìm thấy khách phù hợp</td></tr>`}</tbody></table></div>`;
+    <div class="tablewrap"><table class="hd-table"><thead><tr><th class="c-stt">No</th><th>Họ và tên</th><th class="c-phone">SĐT</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="3" class="muted" style="text-align:center;padding:16px">Không tìm thấy khách phù hợp</td></tr>`}</tbody></table></div>`;
 }
 
 function imgsRow(p){
@@ -1170,11 +1171,7 @@ function showPersonInfo(ctId){
         ${kv('Ngày sinh',fmtDateVi(c.dob))}${kv('SĐT',c.phone)}${kv('CCCD',c.cccd)}${kv('Biển số xe',c.bienso)}${imgsRow(c)}</div>`).join('')}
       ${mgrBlock}`;
   }
-  openModal({title:'Thông tin chi tiết',bodyHTML:html,
-    footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button>
-      ${isEnded(ct)?'':`<button class="btn" style="background:#d97706" onclick="endContractForm('${ct.id}')">🔚 Kết thúc</button>`}
-      <button class="btn danger" onclick="deleteContract('${ct.id}')"><i data-lucide="trash-2"></i> Xoá</button>
-      <button class="btn" onclick="contractForm('${ct.type}','${ct.id}')"><i data-lucide="pencil"></i> Sửa</button>`});
+  openModal({title:'Thông tin chi tiết',bodyHTML:html});
 }
 function kv(k,v){return `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${esc(v||'—')}</span></div>`;}
 function deleteContract(ctId){const h=STORE.house(APP.houseId);const ct=(h.contracts||[]).find(x=>x.id===ctId);
@@ -1271,6 +1268,9 @@ function contractForm(type,id){
         <div class="field"><label>Tiền điện/kWh (₫)</label><input id="c_elec" data-money inputmode="numeric" value="${esc(maskThousand(ct.electricPerKwh))}"></div></div>
       ${mgrSigBlock(h)}`;
   }
+  if(editing&&!isEnded(ct)){body+=`<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+    <button type="button" class="btn block" style="background:#d97706" onclick="endContractForm('${ct.id}')"><i data-lucide="log-out"></i> Kết thúc hợp đồng</button>
+    <div class="hint" style="text-align:center">Chuyển hợp đồng sang mục "Đã kết thúc".</div></div>`;}
   openModal({title:(editing?'Sửa ':'Thêm ')+(type==='KTX'?'hợp đồng KTX':'hợp đồng phòng trọ'),bodyHTML:body,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="saveCt">${editing?'Lưu':'Tạo hợp đồng'}</button>`,
     onMount:(m)=>{if(type==='TRO')renderCustList();$('#saveCt',m).onclick=()=>saveContract(type,editing);}});
