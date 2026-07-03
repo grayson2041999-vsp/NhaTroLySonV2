@@ -1461,15 +1461,18 @@ function financeForm(kind,id){
   let body;
   if(kind==='chi'){
     const items=(h.expenseItems||[]);
+    // ẩn khoản đã nhập trong tháng (trừ chính khoản đang sửa)
+    const usedNames=new Set((h.finance||[]).filter(x=>x.kind==='chi'&&x.month===am&&x.id!==e.id).map(x=>x.label));
+    const avail=items.map((it,idx)=>({it,idx})).filter(o=>!usedNames.has(o.it.name)||(editing&&o.it.name===e.label));
     const isCustomChi=editing&&!items.some(it=>it.name===e.label);
     body=`
       <div class="field"><label>Khoản chi <span class="req">*</span></label>
         <select id="fTarget" onchange="onChiTargetChange()">
           <option value="">— Chọn khoản chi —</option>
-          ${items.map((it,idx)=>`<option value="item:${idx}" ${(!isCustomChi&&e.label===it.name)?'selected':''}>${esc(it.name)}</option>`).join('')}
+          ${avail.map(({it,idx})=>`<option value="item:${idx}" ${(!isCustomChi&&e.label===it.name)?'selected':''}>${esc(it.name)}</option>`).join('')}
           <option value="__other__" ${isCustomChi?'selected':''}>✎ Khác — tự nhập…</option>
         </select>
-        ${items.length?'':'<div class="hint">Chưa có khoản chi cố định. Thêm ở <b>Quản lý hệ thống → Sửa nhà</b>, hoặc chọn "Khác".</div>'}</div>
+        ${!items.length?'<div class="hint">Chưa có khoản chi cố định. Thêm ở <b>Quản lý hệ thống → Sửa nhà</b>, hoặc chọn "Khác".</div>':(!avail.length?'<div class="hint" style="color:#16a34a">Đã nhập hết khoản cố định trong tháng — có thể chọn "Khác".</div>':'')}</div>
       <div id="fChiCustom"></div>
       <div class="field"><label>Số tiền (₫) <span class="req">*</span></label>
         <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="VD: 500.000">
