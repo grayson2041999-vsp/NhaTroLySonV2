@@ -96,6 +96,14 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .hcard .info .nm{font-weight:700;font-size:16px}
 .hcard .info .ad{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hcard .chev{color:var(--muted);font-size:20px}
+/* 3 nút hành động nhà (icon to + chữ nhỏ) */
+.hactions{display:flex;gap:8px;margin-top:4px}
+.hact{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:none;border-radius:12px;font-size:12px;font-weight:700;background:#f1f3f7;color:var(--text)}
+.hact svg.lucide{width:24px;height:24px;stroke-width:2}
+.hact.view{background:var(--primary-light);color:var(--primary-dark)}
+.hact.edit{background:var(--primary);color:#fff}
+.hact.del{background:#fff;border:1px solid var(--border);color:var(--danger)}
+.hact:active{transform:scale(.97)}
 
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);
   position:sticky;top:66px;z-index:20;scrollbar-width:none}
@@ -673,9 +681,10 @@ function renderSystem(c){const houses=STORE.houses();const am=STORE.activeMonth(
       <span class="badge tro">${h.rooms.filter(r=>r.type==='TRO').length} phòng trọ</span>
       <span class="badge warn">HĐ: ${fmtMonthVi(h.contractStart)} – ${fmtMonthVi(h.contractEnd)}</span>
       ${imgHas(h.manager&&h.manager.signature)?'<span class="badge ok">Đã ký QL</span>':''}</div>
-    <div class="row">
-      <button class="btn sec sm" onclick="requirePassword(STORE.house('${h.id}'),'Chỉnh sửa nhà',()=>houseForm('${h.id}'))"><i data-lucide="pencil"></i> Sửa</button>
-      <button class="btn danger sm" onclick="requirePassword(STORE.house('${h.id}'),'Xoá nhà',()=>confirmDeleteHouse('${h.id}'))"><i data-lucide="trash-2"></i> Xoá</button>
+    <div class="hactions">
+      <button class="hact view" onclick="houseInfo('${h.id}')"><i data-lucide="eye"></i><span>Xem</span></button>
+      <button class="hact edit" onclick="houseForm('${h.id}')"><i data-lucide="pencil"></i><span>Sửa</span></button>
+      ${(NT.user&&NT.user.role==='admin')?`<button class="hact del" onclick="confirmDeleteHouse('${h.id}')"><i data-lucide="trash-2"></i><span>Xoá</span></button>`:''}
     </div></div>`).join(''):`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;
   const lb=$('#lockList',c);
   lb.innerHTML=!am?`<div class="muted">Hãy chọn tháng ở trên.</div>`
@@ -686,9 +695,35 @@ function renderSystem(c){const houses=STORE.houses();const am=STORE.activeMonth(
                 :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
       </span></div>`;}).join(''));
 }
-function confirmDeleteHouse(id){const h=STORE.house(id);
-  openModal({title:'Xoá nhà',bodyHTML:`<p>Bạn chắc chắn xoá nhà <b>${esc(h.name)}</b> và toàn bộ hợp đồng? Không thể hoàn tác.</p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn danger" onclick="doDeleteHouse('${id}')">Xoá nhà</button>`});}
+/* Xem thông tin nhà (chỉ đọc) */
+function houseInfo(id){const h=STORE.house(id);if(!h)return;const mgr=h.manager||{};
+  const rooms=(h.rooms||[]).map(r=>`<div class="kv"><span class="k">Phòng ${esc(r.name)}</span><span class="v">${r.type==='KTX'?'KTX':'Trọ'}${r.maxPeople?(' · tối đa '+esc(r.maxPeople)+' người'):''}</span></div>`).join('')||'<div class="muted" style="font-size:13px">Chưa có phòng</div>';
+  const exp=(h.expenseItems||[]).map(x=>`<div class="kv"><span class="k">${esc(x.name)}</span><span class="v">${x.amount?money(x.amount):'—'}</span></div>`).join('')||'<div class="muted" style="font-size:13px">Chưa có khoản chi cố định</div>';
+  openModal({title:h.name||'Nhà',
+    bodyHTML:`<div class="card" style="margin-bottom:12px">
+        <div class="kv"><span class="k">Địa chỉ</span><span class="v">${esc(h.address||'—')}</span></div>
+        <div class="kv"><span class="k">Người quản lý</span><span class="v">${esc(mgr.name||'—')}${mgr.birthYear?(' · '+esc(mgr.birthYear)):''}</span></div>
+        <div class="kv"><span class="k">Thời hạn HĐ</span><span class="v">${fmtMonthVi(h.contractStart)} – ${fmtMonthVi(h.contractEnd)}</span></div>
+        <div class="kv"><span class="k">Chữ ký QL</span><span class="v">${imgHas(mgr.signature)?'<span class="badge ok">Đã ký</span>':'—'}</span></div></div>
+      <div class="sectitle" style="margin-top:0">Phòng (${(h.rooms||[]).length})</div><div class="card" style="margin-bottom:12px">${rooms}</div>
+      <div class="sectitle">Khoản chi cố định</div><div class="card" style="margin-bottom:0">${exp}</div>`,
+    footHTML:`<button class="btn sec" onclick="closeModal()">Đóng</button><button class="btn" onclick="closeModal();houseForm('${h.id}')"><i data-lucide="pencil"></i> Sửa</button>`});}
+/* Xoá nhà: chỉ admin, xác nhận 2 bước, gõ đúng tên nhà */
+function confirmDeleteHouse(id){
+  if(!(NT.user&&NT.user.role==='admin')){toast('Chỉ admin mới được xoá nhà','err');return;}
+  const h=STORE.house(id);if(!h)return;
+  openModal({title:'Xoá nhà',
+    bodyHTML:`<p style="margin:0">Bạn có chắc chắn muốn xoá nhà <b>${esc(h.name)}</b> cùng toàn bộ hợp đồng, thu/chi, thiết bị của nhà này không?<br><span class="muted" style="font-size:13px">Không thể hoàn tác.</span></p>`,
+    footHTML:`<button class="btn sec" onclick="closeModal()">Không</button><button class="btn danger" onclick="askDeleteHouseName('${id}')">Có, tiếp tục</button>`});}
+function askDeleteHouseName(id){const h=STORE.house(id);if(!h)return;
+  openModal({title:'Xác nhận xoá',
+    bodyHTML:`<p class="muted" style="margin-top:0">Để chắc chắn, nhập đúng tên nhà <b>${esc(h.name)}</b> rồi bấm Xoá:</p>
+      <div class="field"><input id="delName" placeholder="Nhập tên nhà"></div>`,
+    footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn danger" id="delOk"><i data-lucide="trash-2"></i> Xoá vĩnh viễn</button>`,
+    onMount:(m)=>{const inp=$('#delName',m);inp.focus();
+      const go=()=>{ if((inp.value||'').trim()!==(h.name||'').trim()){toast('Tên nhà không khớp','err');return;} doDeleteHouse(id); };
+      $('#delOk',m).onclick=go; inp.onkeydown=e=>{if(e.key==='Enter')go();};}
+  });}
 function doDeleteHouse(id){const h=STORE.house(id);if(h){(h.contracts||[]).forEach(ct=>dropImages(contractCustomerImgs(ct)));if(h.manager&&h.manager.signature)dropImages([h.manager.signature]);}STORE.removeHouse(id);enqueueOp({entity:'house',type:'delete',id});closeModal();toast('Đã xoá nhà','ok');renderSystem($('#content'));}
 
 /* ---------- HOUSE FORM ---------- */
