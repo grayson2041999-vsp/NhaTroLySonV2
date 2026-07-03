@@ -1392,7 +1392,7 @@ function renderFinanceTab(c,h,kind){
   if(!am){c.innerHTML=`<div class="placeholder-tab"><div class="ic"><i data-lucide="calendar"></i></div><h2 style="margin:0 0 6px">${title}</h2><p>Chưa chọn tháng thao tác.<br>Vào <b>Quản lý hệ thống</b> để chọn tháng.</p>
     <button class="btn ghost" style="margin-top:10px" onclick="goSystem()">Mở Quản lý hệ thống</button></div>`;return;}
   const locked=(h.lockedMonths||[]).includes(am);
-  const allList=(h.finance||[]).filter(e=>e.month===am&&e.kind===kind);
+  const allList=(h.finance||[]).filter(e=>e.month===am&&e.kind===kind).sort((a,b)=>(Number(a.ts)||0)-(Number(b.ts)||0));
   // Lọc theo người nhập (cột "Nhập"): rỗng = hiển thị tất cả
   const fp=APP.finFilter||'';
   const list=fp?allList.filter(e=>(e.userName||'')===fp):allList;
