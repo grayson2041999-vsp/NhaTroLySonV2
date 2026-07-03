@@ -1674,6 +1674,15 @@ async function ensurePdfMake(){
 function ulOrDots(arr){return (arr&&arr.length)?{ul:arr.slice(),margin:[0,2,0,8]}:{text:'……………………………………',margin:[0,2,0,8]};}
 function sigImgNode(obj){const s=imgSrc(obj);return (s&&s.indexOf('data:')===0)?{image:s,fit:[150,55],alignment:'center',margin:[0,6,0,2]}:{text:'\n\n',margin:[0,12,0,0]};}
 function photoNode(obj){const s=imgSrc(obj);return (s&&s.indexOf('data:')===0)?{image:s,fit:[470,330],alignment:'center',margin:[0,4,0,14]}:{text:'(Chưa có ảnh — mở app trên thiết bị đã chụp để xuất kèm ảnh)',italics:true,color:'#888',margin:[0,4,0,14]};}
+/* pdfMake chỉ nhúng ảnh base64 -> tải ảnh từ link (Supabase) về dạng base64 rồi lưu vào IMGCACHE */
+function ntBlobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});}
+async function ntEnsureDataUrl(obj){
+  if(!obj||!obj.imgId)return;
+  const cur=IMGCACHE[obj.imgId]; if(cur&&cur.indexOf('data:')===0)return; /* đã có base64 */
+  const url=obj.url; if(!url)return;
+  try{ const res=await fetch(url,{mode:'cors'}); if(!res.ok)return; const blob=await res.blob(); const d=await ntBlobToDataURL(blob); if(d&&d.indexOf('data:image')===0)IMGCACHE[obj.imgId]=d; }
+  catch(e){ console.warn('Tải ảnh cho PDF lỗi:',url,e); }
+}
 function buildKtxDocDef(h,ct){
   const c=ct.customer||{},g=ct.guardian||{},m=h.manager||{};
   const room=(h.rooms||[]).find(r=>r.id===ct.roomId)||{};
@@ -1731,6 +1740,8 @@ async function exportContractPdf(ctId){
   toast('Đang tạo PDF…');
   try{await ensurePdfMake();}catch(e){toast('Cần kết nối mạng để tạo PDF','err');return;}
   try{
+    const cc=ct.customer||{};
+    await Promise.all([ntEnsureDataUrl(cc.cccdPhoto),ntEnsureDataUrl(cc.customerPhoto),ntEnsureDataUrl(cc.signature),ntEnsureDataUrl(h.manager&&h.manager.signature)]);
     const dd=buildKtxDocDef(h,ct);
     pdfMake.createPdf(dd).getBlob(async(blob)=>{
       const fname=`HopDong_${((ct.customer&&ct.customer.name)||'KTX').replace(/\s+/g,'_')}.pdf`;
