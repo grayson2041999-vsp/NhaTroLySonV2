@@ -411,7 +411,7 @@ function fileToResizedDataURL(file,maxW,q){
 }
 
 /* ---------- app state ---------- */
-const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'xe',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
+const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'',tkSearch:'',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
 
 /* ---------- MODAL ---------- */
 function openModal({title,bodyHTML,footHTML,onMount}){
@@ -917,24 +917,37 @@ function renderHouse(c){const h=STORE.house(APP.houseId);if(!h){goEntry();return
 }
 
 /* ---------- TAB THỐNG KÊ ---------- */
-function setTkView(v){APP.tkView=v;render();}
+function setTkView(v){APP.tkView=v;APP.tkSearch='';render();}
+function renderTkBody(){const box=document.getElementById('tkBody');if(!box)return;const h=STORE.house(APP.houseId);
+  if(APP.tkView==='dongtien')renderCashFlow(box);
+  else if(APP.tkView==='cccd')renderCCCD(box);
+  else if(APP.tkView==='thietbi')renderTabThietBi(box,h);
+  else if(APP.tkView==='ketthuc')renderEndedContracts(box);
+  else renderVehicles(box);
+}
 function renderTabThongKe(c){
-  const tk=(k,l)=>`<button class="tab ${APP.tkView===k?'active':''}" onclick="setTkView('${k}')">${l}</button>`;
-  c.innerHTML=`<div class="tabs" style="position:static;top:auto;border:none;background:none;padding:0 0 12px">
-      ${tk('dongtien','Dòng tiền')}${tk('xe','Quản lý xe')}${tk('cccd','CCCD')}${tk('thietbi','Thiết bị')}${tk('ketthuc','Đã kết thúc')}
-    </div><div id="tkBody"></div>`;
-  const box=$('#tkBody',c);const h=STORE.house(APP.houseId);
-  if(APP.tkView==='dongtien'){ renderCashFlow(box); }
-  else if(APP.tkView==='cccd'){ renderCCCD(box); }
-  else if(APP.tkView==='thietbi'){ renderTabThietBi(box,h); }
-  else if(APP.tkView==='ketthuc'){ renderEndedContracts(box); }
-  else { renderVehicles(box); }
+  const items=[['dongtien','Dòng tiền','trending-up'],['xe','Quản lý xe','car'],['cccd','CCCD','contact'],['thietbi','Thiết bị','wrench'],['ketthuc','Đã kết thúc','archive']];
+  if(!APP.tkView){
+    c.innerHTML=`<div class="editboxes">${items.map(([k,l,ic])=>`<button class="ebox" onclick="setTkView('${k}')"><i data-lucide="${ic}"></i><span>${l}</span></button>`).join('')}</div>`;
+    return;
+  }
+  const cur=items.find(x=>x[0]===APP.tkView)||items[1];
+  const needSearch=['xe','cccd','ketthuc'].includes(APP.tkView);
+  const ph=APP.tkView==='xe'?'Tìm theo tên · biển số':'Tìm theo tên';
+  c.innerHTML=`<button class="btn sec sm" style="margin-bottom:12px" onclick="setTkView('')"><i data-lucide="chevron-left"></i> Thống kê</button>
+    <div style="font-weight:700;margin-bottom:10px">${esc(cur[1])}</div>
+    ${needSearch?`<div class="field" style="margin-bottom:10px"><input id="tkSearch" value="${esc(APP.tkSearch||'')}" placeholder="${ph}" oninput="APP.tkSearch=this.value;renderTkBody()"></div>`:''}
+    <div id="tkBody"></div>`;
+  renderTkBody();
 }
 /* Thống kê hợp đồng đã kết thúc (lưu tối đa 6 tháng kể từ ngày kết thúc) */
 function renderEndedContracts(box){
   const h=STORE.house(APP.houseId);if(!h){box.innerHTML='';return;}
-  const ended=(h.contracts||[]).filter(c=>isEnded(c)).slice().sort((a,b)=>String(b.endedAt||'').localeCompare(String(a.endedAt||'')));
-  if(!ended.length){box.innerHTML=`<div class="empty"><div class="ic">🔚</div>Chưa có hợp đồng nào kết thúc.</div>`;return;}
+  const q=((APP.tkSearch||'').trim().toLowerCase());
+  let ended=(h.contracts||[]).filter(c=>isEnded(c));
+  if(q)ended=ended.filter(ct=>(ctMainName(ct)||'').toLowerCase().includes(q));
+  ended=ended.slice().sort((a,b)=>String(b.endedAt||'').localeCompare(String(a.endedAt||'')));
+  if(!ended.length){box.innerHTML=`<div class="empty"><div class="ic">🔚</div>${q?'Không tìm thấy hợp đồng phù hợp.':'Chưa có hợp đồng nào kết thúc.'}</div>`;return;}
   const rows=ended.map(ct=>{const room=(h.rooms||[]).find(r=>r.id===ct.roomId);const rn=room?room.name:'—';
     return `<div class="card" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px">
@@ -1048,14 +1061,15 @@ function profitChartSVG(cf){
 /* Thống kê ẢNH CHỤP CCCD của NHÀ ĐANG MỞ; ai chưa có ảnh thì ghi "Chưa nhập" */
 function renderCCCD(box){
   const h=STORE.house(APP.houseId);if(!h){box.innerHTML='';return;}
+  const q=((APP.tkSearch||'').trim().toLowerCase());
   const byRoom={};let total=0,missing=0;
   (h.contracts||[]).forEach(ct=>{
     if(isEnded(ct))return;
     const room=h.rooms.find(r=>r.id===ct.roomId);const roomName=room?room.name:'(phòng đã xoá)';
     const custs=ct.type==='KTX'?(ct.customer?[ct.customer]:[]):(ct.customers||[]);
-    custs.forEach(cu=>{const has=imgHas(cu.cccdPhoto);(byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',src:has?imgSrc(cu.cccdPhoto):''});total++;if(!has)missing++;});
+    custs.forEach(cu=>{if(q&&!((cu.name||'').toLowerCase().includes(q)))return;const has=imgHas(cu.cccdPhoto);(byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',src:has?imgSrc(cu.cccdPhoto):''});total++;if(!has)missing++;});
   });
-  if(!total){box.innerHTML=`<div class="empty"><div class="ic">🪪</div>Nhà này chưa có khách nào.</div>`;return;}
+  if(!total){box.innerHTML=`<div class="empty"><div class="ic">🪪</div>${q?'Không tìm thấy khách phù hợp.':'Nhà này chưa có khách nào.'}</div>`;return;}
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
   roomNames.forEach(rn=>{
@@ -1072,14 +1086,17 @@ function renderCCCD(box){
 /* Thống kê xe của NHÀ ĐANG MỞ; nhóm theo phòng; bỏ qua khách không nhập biển số */
 function renderVehicles(box){
   const h=STORE.house(APP.houseId);if(!h){box.innerHTML='';return;}
+  const q=((APP.tkSearch||'').trim().toLowerCase());
   const byRoom={};let total=0;
   (h.contracts||[]).forEach(ct=>{
     if(isEnded(ct))return;
     const room=h.rooms.find(r=>r.id===ct.roomId);const roomName=room?room.name:'(phòng đã xoá)';
     const custs=ct.type==='KTX'?(ct.customer?[ct.customer]:[]):(ct.customers||[]);
-    custs.forEach(cu=>{const bs=(cu.bienso||'').trim();if(bs){(byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',bienso:bs});total++;}});
+    custs.forEach(cu=>{const bs=(cu.bienso||'').trim();if(!bs)return;
+      if(q&&!((cu.name||'').toLowerCase().includes(q)||bs.toLowerCase().includes(q)))return;
+      (byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',bienso:bs});total++;});
   });
-  if(!total){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="car"></i></div>Nhà này chưa có xe nào được khai báo.<br>Biển số xe được nhập ở từng khách trong hợp đồng.</div>`;return;}
+  if(!total){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="car"></i></div>${q?'Không tìm thấy xe phù hợp.':'Nhà này chưa có xe nào được khai báo.<br>Biển số xe được nhập ở từng khách trong hợp đồng.'}</div>`;return;}
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
   roomNames.forEach(rn=>{
@@ -2068,8 +2085,8 @@ function importData(input){const f=input.files[0];if(!f)return;const r=new FileR
 /* ---------- navigation ---------- */
 function goEntry(){APP.screen='entry';APP.houseId=null;scrollTop();render();}
 function goSystem(){APP.screen='system';scrollTop();render();}
-function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';scrollTop();render();}
-function setTab(t){APP.tab=t;APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';scrollTop();render();}
+function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';APP.tkView='';APP.tkSearch='';scrollTop();render();}
+function setTab(t){APP.tab=t;APP.finFilter='';APP.finOpen='';APP.hdOpen='';APP.hdSearch='';APP.tkView='';APP.tkSearch='';scrollTop();render();}
 function scrollTop(){window.scrollTo(0,0);}
 
 /* ============================================================ SUPABASE — ĐĂNG NHẬP & DỮ LIỆU ============================================================ */
