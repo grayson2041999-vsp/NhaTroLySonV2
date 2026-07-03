@@ -104,6 +104,11 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .hact.edit{background:var(--primary);color:#fff}
 .hact.del{background:#fff;border:1px solid var(--border);color:var(--danger)}
 .hact:active{transform:scale(.97)}
+/* Ô vuông mở mục con trong form sửa nhà */
+.editboxes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px}
+.ebox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 6px;border:1px solid var(--border);border-radius:14px;background:var(--primary-light);color:var(--primary-dark);font-weight:700;font-size:12px;text-align:center;min-height:98px;line-height:1.2}
+.ebox svg.lucide{width:30px;height:30px;stroke-width:2}
+.ebox:active{transform:scale(.97)}
 
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);
   position:sticky;top:66px;z-index:20;scrollbar-width:none}
@@ -422,7 +427,9 @@ function openModal2({title,bodyHTML,footHTML,onMount}){
   $('#modal2Bg').classList.add('show');
   if(onMount)onMount($('#modal2'));
 }
-function closeModal2(){if(window._cccdStream){try{window._cccdStream.getTracks().forEach(t=>t.stop());}catch(e){}window._cccdStream=null;}$('#modal2Bg').classList.remove('show');}
+function closeModal2(){
+  try{ if($('#roomList'))syncRoomDom(); if($('#expList'))syncExpDom(); if($('#dieu4List'))syncDieuDom(); }catch(e){} /* lưu mục con đang mở vào bản nháp */
+  if(window._cccdStream){try{window._cccdStream.getTracks().forEach(t=>t.stop());}catch(e){}window._cccdStream=null;}$('#modal2Bg').classList.remove('show');}
 $('#modal2Bg').addEventListener('click',e=>{if(e.target.id==='modal2Bg')closeModal2();});
 
 /* ---------- IMAGE / SIGNATURE FIELD HELPERS ---------- */
@@ -738,9 +745,6 @@ function houseForm(id){
     bodyHTML:`
       <div class="field"><label>Tên nhà <span class="req">*</span></label><input id="f_name" value="${esc(h.name)}" placeholder="VD: Nhà trọ số 1"></div>
       <div class="field"><label>Địa chỉ</label><input id="f_addr" value="${esc(h.address)}" placeholder="Số nhà, đường, phường…"></div>
-      <div class="sectitle">Danh sách phòng</div>
-      <div id="roomList" class="inline-list"></div>
-      <button class="btn ghost sm" type="button" onclick="addRoomRow()"><i data-lucide="plus"></i> Thêm phòng</button>
       <div class="sectitle">Người quản lý hợp đồng</div>
       <div class="grid2"><div class="field"><label>Họ và tên</label><input id="f_mgr" value="${esc(h.manager.name)}"></div>
         <div class="field"><label>Năm sinh</label><input id="f_mgryob" inputmode="numeric" value="${esc(h.manager.birthYear)}" placeholder="VD: 1985"></div></div>
@@ -751,22 +755,16 @@ function houseForm(id){
       <div class="sectitle">Thời hạn hợp đồng của nhà</div>
       <div class="grid2"><div class="field"><label>Từ tháng/năm</label><input id="f_cs" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(h.contractStart))}"></div>
         <div class="field"><label>Đến tháng/năm</label><input id="f_ce" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(h.contractEnd))}"></div></div>
-      <div class="sectitle">Điều khoản hợp đồng KTX</div>
-      <div class="muted" style="font-size:12px;margin:-4px 2px 8px">Các mục nhỏ dưới đây sẽ tự đưa vào hợp đồng khi xuất PDF.</div>
-      <div class="field" style="margin-bottom:8px"><label>Điều 4 — Quyền và nghĩa vụ của Bên A</label>
-        <div id="dieu4List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu4')"><i data-lucide="plus"></i> Thêm mục</button></div>
-      <div class="field" style="margin-bottom:8px"><label>Điều 5 — Quyền và nghĩa vụ của Bên B</label>
-        <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')"><i data-lucide="plus"></i> Thêm mục</button></div>
-      <div class="field"><label>Điều 6 — Thỏa thuận khác</label>
-        <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')"><i data-lucide="plus"></i> Thêm mục</button></div>
-      <div class="sectitle">Khoản chi cố định</div>
-      <div class="muted" style="font-size:12px;margin:-4px 2px 8px">Khai sẵn các khoản chi hay dùng của nhà. Khi nhập Chi phí sẽ chọn nhanh từ đây; khoản nào có số tiền cố định sẽ tự điền.</div>
-      <div id="expList" class="inline-list"></div>
-      <button class="btn ghost sm" type="button" onclick="addExpRow()"><i data-lucide="plus"></i> Thêm khoản chi</button>`,
+      <div class="sectitle">Thiết lập chi tiết</div>
+      <div class="editboxes">
+        <button type="button" class="ebox" onclick="openContractClauses()"><i data-lucide="file-text"></i><span>Hợp đồng với khách hàng</span></button>
+        <button type="button" class="ebox" onclick="openRoomsEditor()"><i data-lucide="door-open"></i><span>Quản lý phòng</span></button>
+        <button type="button" class="ebox" onclick="openExpenseEditor()"><i data-lucide="wallet"></i><span>Quản lý chi phí</span></button>
+      </div>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="saveHouse">${editing?'Lưu thay đổi':'Tạo nhà'}</button>`,
-    onMount:(m)=>{window._roomDraft=h.rooms.map(r=>({...r,equipment:(r.equipment||[]).map(e=>({...e}))}));renderRoomRows();
-      renderDieu('dieu4');renderDieu('dieu5');renderDieu('dieu6');
-      window._expDraft=(h.expenseItems||[]).map(x=>({...x}));renderExpRows();
+    onMount:(m)=>{
+      window._roomDraft=h.rooms.map(r=>({...r,equipment:(r.equipment||[]).map(e=>({...e}))}));
+      window._expDraft=(h.expenseItems||[]).map(x=>({...x}));
       $('#saveHouse',m).onclick=()=>saveHouseForm(h.id,editing);}
   });
 }
@@ -831,6 +829,34 @@ function syncExpDom(){const box=$('#expList');if(!box||!window._expDraft)return;
     if(f==='name')x.name=el.value; else if(f==='amount')x.amount=el.value.replace(/\D/g,'');});}
 function addExpRow(){syncExpDom();(window._expDraft=window._expDraft||[]).push({id:uid(),name:'',amount:''});renderExpRows();}
 function removeExpRow(i){syncExpDom();window._expDraft.splice(i,1);renderExpRows();}
+/* ----- 3 ô: mở mục con của form sửa nhà (dùng modal phụ) ----- */
+function openRoomsEditor(){
+  openModal2({title:'Quản lý phòng',
+    bodyHTML:`<div id="roomList" class="inline-list"></div>
+      <button class="btn ghost sm" type="button" onclick="addRoomRow()"><i data-lucide="plus"></i> Thêm phòng</button>`,
+    footHTML:`<button class="btn block" onclick="syncRoomDom();closeModal2()">Xong</button>`,
+    onMount:()=>renderRoomRows()});
+}
+function openExpenseEditor(){
+  openModal2({title:'Quản lý chi phí',
+    bodyHTML:`<div class="muted" style="font-size:12px;margin:0 2px 8px">Khoản chi hay dùng của nhà. Khi nhập Chi phí sẽ chọn nhanh; khoản có số tiền cố định sẽ tự điền.</div>
+      <div id="expList" class="inline-list"></div>
+      <button class="btn ghost sm" type="button" onclick="addExpRow()"><i data-lucide="plus"></i> Thêm khoản chi</button>`,
+    footHTML:`<button class="btn block" onclick="syncExpDom();closeModal2()">Xong</button>`,
+    onMount:()=>renderExpRows()});
+}
+function openContractClauses(){
+  openModal2({title:'Hợp đồng với khách hàng',
+    bodyHTML:`<div class="muted" style="font-size:12px;margin:0 2px 10px">Các mục dưới đây tự đưa vào hợp đồng KTX khi xuất PDF.</div>
+      <div class="field" style="margin-bottom:8px"><label>Điều 4 — Quyền và nghĩa vụ của Bên A</label>
+        <div id="dieu4List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu4')"><i data-lucide="plus"></i> Thêm mục</button></div>
+      <div class="field" style="margin-bottom:8px"><label>Điều 5 — Quyền và nghĩa vụ của Bên B</label>
+        <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')"><i data-lucide="plus"></i> Thêm mục</button></div>
+      <div class="field"><label>Điều 6 — Thỏa thuận khác</label>
+        <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')"><i data-lucide="plus"></i> Thêm mục</button></div>`,
+    footHTML:`<button class="btn block" onclick="syncDieuDom();closeModal2()">Xong</button>`,
+    onMount:()=>{renderDieu('dieu4');renderDieu('dieu5');renderDieu('dieu6');}});
+}
 function saveHouseForm(id,editing){
   syncRoomDom();syncDieuDom();syncExpDom();
   const name=$('#f_name').value.trim();
