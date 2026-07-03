@@ -834,7 +834,7 @@ function openRoomsEditor(){
   openModal2({title:'Quản lý phòng',
     bodyHTML:`<div id="roomList" class="inline-list"></div>
       <button class="btn ghost sm" type="button" onclick="addRoomRow()"><i data-lucide="plus"></i> Thêm phòng</button>`,
-    footHTML:`<button class="btn block" onclick="syncRoomDom();closeModal2()">Xong</button>`,
+    footHTML:`<button class="btn block" onclick="saveRoomsSection()"><i data-lucide="check"></i> Lưu phòng</button>`,
     onMount:()=>renderRoomRows()});
 }
 function openExpenseEditor(){
@@ -842,7 +842,7 @@ function openExpenseEditor(){
     bodyHTML:`<div class="muted" style="font-size:12px;margin:0 2px 8px">Khoản chi hay dùng của nhà. Khi nhập Chi phí sẽ chọn nhanh; khoản có số tiền cố định sẽ tự điền.</div>
       <div id="expList" class="inline-list"></div>
       <button class="btn ghost sm" type="button" onclick="addExpRow()"><i data-lucide="plus"></i> Thêm khoản chi</button>`,
-    footHTML:`<button class="btn block" onclick="syncExpDom();closeModal2()">Xong</button>`,
+    footHTML:`<button class="btn block" onclick="saveExpenseSection()"><i data-lucide="check"></i> Lưu khoản chi</button>`,
     onMount:()=>renderExpRows()});
 }
 function openContractClauses(){
@@ -854,8 +854,31 @@ function openContractClauses(){
         <div id="dieu5List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu5')"><i data-lucide="plus"></i> Thêm mục</button></div>
       <div class="field"><label>Điều 6 — Thỏa thuận khác</label>
         <div id="dieu6List"></div><button class="btn ghost sm" type="button" onclick="addDieu('dieu6')"><i data-lucide="plus"></i> Thêm mục</button></div>`,
-    footHTML:`<button class="btn block" onclick="syncDieuDom();closeModal2()">Xong</button>`,
+    footHTML:`<button class="btn block" onclick="saveClausesSection()"><i data-lucide="check"></i> Lưu điều khoản</button>`,
     onMount:()=>{renderDieu('dieu4');renderDieu('dieu5');renderDieu('dieu6');}});
+}
+/* Lưu ngay từng phần (nếu nhà đã tồn tại thì ghi lên Supabase; nhà mới thì giữ bản nháp) */
+function commitHouseSection(patch){
+  const id=window._houseDraft&&window._houseDraft.id;
+  if(id&&STORE.house(id)){ STORE.updateHouse(id,patch); const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;enqueueOp({entity:'house',type:'upsert',house:_hm}); toast('Đã lưu','ok'); }
+  else { Object.assign(window._houseDraft,patch); toast('Đã lưu tạm — bấm "Tạo nhà" để hoàn tất','ok'); }
+}
+function saveRoomsSection(){
+  syncRoomDom();
+  const rooms=(window._roomDraft||[]).filter(r=>(r.name||'').trim()).map(r=>({id:r.id||uid(),name:r.name.trim(),type:r.type,
+    maxPeople:(r.maxPeople||'').toString().trim(),
+    equipment:(r.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>({name:e.name.trim(),condition:(e.condition||'').trim()}))}));
+  commitHouseSection({rooms}); closeModal2();
+}
+function saveExpenseSection(){
+  syncExpDom();
+  const expenseItems=(window._expDraft||[]).filter(x=>(x.name||'').trim()).map(x=>({id:x.id||uid(),name:(x.name||'').trim(),amount:(x.amount||'').toString().replace(/\D/g,'')}));
+  commitHouseSection({expenseItems}); closeModal2();
+}
+function saveClausesSection(){
+  syncDieuDom();
+  const cleanDieu=a=>(a||[]).map(s=>(s||'').trim()).filter(Boolean);
+  commitHouseSection({dieu4:cleanDieu(window._houseDraft.dieu4),dieu5:cleanDieu(window._houseDraft.dieu5),dieu6:cleanDieu(window._houseDraft.dieu6)}); closeModal2();
 }
 function saveHouseForm(id,editing){
   syncRoomDom();syncDieuDom();syncExpDom();
