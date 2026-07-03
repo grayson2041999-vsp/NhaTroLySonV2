@@ -416,7 +416,7 @@ function fileToResizedDataURL(file,maxW,q){
 }
 
 /* ---------- app state ---------- */
-const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'',tkSearch:'',cfOpen:'',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
+const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'',tkSearch:'',cfOpen:'',devOpen:'',devLogOpen:'',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
 
 /* ---------- MODAL ---------- */
 function openModal({title,bodyHTML,footHTML,onMount}){
@@ -922,7 +922,7 @@ function renderHouse(c){const h=STORE.house(APP.houseId);if(!h){goEntry();return
 }
 
 /* ---------- TAB THỐNG KÊ ---------- */
-function setTkView(v){APP.tkView=v;APP.tkSearch='';APP.cfOpen='';render();}
+function setTkView(v){APP.tkView=v;APP.tkSearch='';APP.cfOpen='';APP.devOpen='';APP.devLogOpen='';render();}
 function renderTkBody(){const box=document.getElementById('tkBody');if(!box)return;const h=STORE.house(APP.houseId);
   if(APP.tkView==='dongtien')renderCashFlow(box);
   else if(APP.tkView==='cccd')renderCCCD(box);
@@ -1646,46 +1646,58 @@ function fmtDateTimeVi(s){if(!s)return '—';const m=String(s).match(/^(\d{4})-(
   if(!m)return s;let o=(+m[3])+'/'+m[2]+'/'+m[1];if(m[4])o+=' '+m[4]+':'+m[5];return o;}
 function nowLocalDT(){const d=new Date();const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function deviceLogCost(d){return (d.logs||[]).reduce((s,l)=>s+(Number(l.cost)||0),0);}
+function deviceLastTs(d){let m='';(d.logs||[]).forEach(l=>{if(l.ts&&String(l.ts)>m)m=String(l.ts);});return m;}
+function _monthsSince(ts){if(!ts)return 1e9;const d=new Date(ts);if(isNaN(d))return 1e9;return (Date.now()-d.getTime())/2629800000;}
+function deviceOverdue(d){const cyc=Number(d.cycleMonths)||0;if(!cyc)return false;const ts=deviceLastTs(d);if(!ts)return true;const due=new Date(ts);if(isNaN(due))return false;due.setMonth(due.getMonth()+cyc);return Date.now()>due.getTime();}
+function setDevOpen(id){APP.devOpen=(APP.devOpen===id?'':id);APP.devLogOpen='';renderTkBody();}
+function setDevLogOpen(k){APP.devLogOpen=(APP.devLogOpen===k?'':k);renderTkBody();}
 function renderTabThietBi(c,h){
   h.devices=h.devices||[];
-  const devs=h.devices;
+  const devs=h.devices.slice().sort((a,b)=>{const oa=deviceOverdue(a)?0:1,ob=deviceOverdue(b)?0:1;if(oa!==ob)return oa-ob;return _monthsSince(deviceLastTs(b))-_monthsSince(deviceLastTs(a));});
   const grandTotal=devs.reduce((s,d)=>s+deviceLogCost(d),0);
-  let body=`
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+  let body=`<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div><div style="font-weight:700">Thiết bị</div>
-        <div class="muted" style="font-size:13px">${devs.length} thiết bị · Tổng chi phí bảo dưỡng: <b>${money(grandTotal)}</b></div></div>
+        <div class="muted" style="font-size:13px">${devs.length} thiết bị · Tổng chi phí: <b>${money(grandTotal)}</b></div></div>
     </div>
     <button class="btn block" style="margin-bottom:12px" onclick="deviceForm()"><i data-lucide="plus"></i> Thêm thiết bị</button>`;
-  if(!devs.length){
-    body+=`<div class="empty"><div class="ic">🔧</div>Chưa có thiết bị nào.<br>Bấm “<i data-lucide="plus"></i> Thêm thiết bị” để thêm.</div>`;
-    c.innerHTML=body;return;
-  }
+  if(!devs.length){ body+=`<div class="empty"><div class="ic"><i data-lucide="wrench"></i></div>Chưa có thiết bị nào.</div>`; c.innerHTML=body; return; }
   devs.forEach(d=>{
-    const logs=(d.logs||[]).slice().sort((a,b)=>String(b.ts||'').localeCompare(String(a.ts||'')));
-    const tot=deviceLogCost(d);
-    let logHtml;
-    if(logs.length){
-      logHtml=`<div class="tablewrap" style="margin-top:8px"><table class="dev-table">
-        <thead><tr><th>Nội dung</th><th class="d-date">Ngày</th><th class="d-cost">Chi phí</th><th class="d-act"></th></tr></thead>
-        <tbody>${logs.map(l=>`<tr>
-          <td>${esc(l.content||'')}${l.note?`<div class="muted" style="font-size:12px">📝 ${esc(l.note)}</div>`:''}${l.userName?`<div class="muted" style="font-size:12px">— ${esc(l.userName)}</div>`:''}</td>
-          <td class="d-date">${esc(fmtDateTimeVi(l.ts))}</td>
-          <td class="d-cost">${money(l.cost)}</td>
-          <td class="d-act"><button class="linkbtn" onclick="deviceLogForm('${d.id}','${l.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="deleteDeviceLog('${d.id}','${l.id}')">Xoá</button></td>
-        </tr>`).join('')}</tbody></table></div>`;
-    } else { logHtml=`<div class="muted" style="font-size:13px;margin-top:8px">Chưa có lịch sử sửa chữa/bảo dưỡng.</div>`; }
-    body+=`<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
-        <div style="min-width:0">
-          <div style="font-weight:700">🔧 ${esc(d.name||'')}</div>
-          ${d.info?`<div class="muted" style="font-size:13px;white-space:pre-wrap">${esc(d.info)}</div>`:''}
-          <div class="muted" style="font-size:13px;margin-top:2px">Tổng: <b>${money(tot)}</b> · ${(d.logs||[]).length} lần</div>
+    const open=(APP.devOpen===d.id);const lastTs=deviceLastTs(d);const overdue=deviceOverdue(d);const cyc=Number(d.cycleMonths)||0;const cnt=(d.logs||[]).length;const tot=deviceLogCost(d);
+    const lastLine=lastTs?`Bảo dưỡng gần nhất: ${isoToDmy(lastTs)}`:'Chưa bảo dưỡng lần nào';
+    const badge=overdue?` <span class="badge warn">Đến hạn</span>`:'';
+    let expanded='';
+    if(open){
+      const logs=(d.logs||[]).slice().sort((a,b)=>String(b.ts||'').localeCompare(String(a.ts||'')));
+      let logHtml;
+      if(logs.length){
+        logHtml=`<div class="tablewrap" style="margin-top:8px"><table class="dev-table">
+          <thead><tr><th>Nội dung</th><th class="d-date">Ngày</th><th class="d-cost">Chi phí</th></tr></thead>
+          <tbody>${logs.map(l=>{const lk=d.id+'#'+l.id;const lo=(APP.devLogOpen===lk);
+            return `<tr class="finrow${lo?' open':''}" onclick="event.stopPropagation();setDevLogOpen('${lk}')" style="cursor:pointer">
+              <td>${esc(l.content||'')}${l.note?`<div class="muted" style="font-size:12px">${esc(l.note)}</div>`:''}${l.userName?`<div class="muted" style="font-size:12px">— ${esc(l.userName)}</div>`:''}</td>
+              <td class="d-date">${esc(isoToDmy(l.ts))}</td><td class="d-cost">${money(l.cost)}</td></tr>`+
+              (lo?`<tr class="finact"><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end">
+                <button class="btn sec sm" onclick="event.stopPropagation();deviceLogForm('${d.id}','${l.id}')"><i data-lucide="pencil"></i> Sửa</button>
+                <button class="btn danger sm" onclick="event.stopPropagation();deleteDeviceLog('${d.id}','${l.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:'');}).join('')}</tbody></table></div>`;
+      } else { logHtml=`<div class="muted" style="font-size:13px;margin-top:8px">Chưa có lịch sử bảo dưỡng.</div>`; }
+      expanded=`<div onclick="event.stopPropagation()" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        ${d.info?`<div class="muted" style="font-size:13px;white-space:pre-wrap;margin-bottom:6px">${esc(d.info)}</div>`:''}
+        ${logHtml}
+        <button class="btn sec sm block" style="margin-top:10px" onclick="deviceLogForm('${d.id}')"><i data-lucide="plus"></i> Thêm bảo dưỡng</button>
+        <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="deviceForm('${d.id}')"><i data-lucide="pencil"></i> Sửa thiết bị</button>
+          <button class="btn danger sm" onclick="deleteDevice('${d.id}')"><i data-lucide="trash-2"></i> Xoá</button></div>
+      </div>`;
+    }
+    body+=`<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="setDevOpen('${d.id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <i data-lucide="wrench" style="color:var(--primary)"></i>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700">${esc(d.name||'')}</div>
+          <div style="margin-top:2px;font-weight:700;color:${overdue?'#b45309':'var(--text)'}">${lastLine}${badge}</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">${cnt} lần · ${money(tot)}${cyc?` · chu kỳ ${cyc} tháng`:''}</div>
         </div>
-        <div style="white-space:nowrap"><button class="linkbtn" onclick="deviceForm('${d.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="deleteDevice('${d.id}')">Xoá</button></div>
-      </div>
-      ${logHtml}
-      <button class="btn sec sm" style="margin-top:10px" onclick="deviceLogForm('${d.id}')"><i data-lucide="plus"></i> Thêm bảo dưỡng</button>
-    </div>`;
+        <i data-lucide="${open?'chevron-up':'chevron-down'}" style="color:var(--muted)"></i>
+      </div>${expanded}</div>`;
   });
   c.innerHTML=body;
 }
@@ -1697,7 +1709,10 @@ function deviceForm(id){
     <div class="field"><label>Tên thiết bị <span class="req">*</span></label>
       <input id="dName" value="${esc(d.name||'')}" placeholder="VD: Máy giặt tầng 1"></div>
     <div class="field"><label>Thông tin thiết bị</label>
-      <textarea id="dInfo" rows="3" style="resize:vertical" placeholder="VD: Hiệu Toshiba 8kg, mua 2024, đặt ở khu giặt chung">${esc(d.info||'')}</textarea></div>`;
+      <textarea id="dInfo" rows="3" style="resize:vertical" placeholder="VD: Hiệu Toshiba 8kg, mua 2024, đặt ở khu giặt chung">${esc(d.info||'')}</textarea></div>
+    <div class="field"><label>Chu kỳ bảo dưỡng (tháng)</label>
+      <input id="dCycle" inputmode="numeric" value="${esc(d.cycleMonths||'')}" placeholder="VD: 6 — để trống nếu không cần nhắc" oninput="this.value=this.value.replace(/\\D/g,'')">
+      <div class="hint">App sẽ báo "đến hạn" khi quá số tháng này kể từ lần bảo dưỡng gần nhất.</div></div>`;
   openModal({title:(editing?'Sửa ':'Thêm ')+'thiết bị',bodyHTML:body,
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="dSave">${editing?'Lưu':'Thêm'}</button>`,
     onMount:(m)=>{$('#dSave',m).onclick=()=>saveDevice(d.id,editing);}});
@@ -1706,8 +1721,9 @@ function saveDevice(id,editing){
   const h=STORE.house(APP.houseId);h.devices=h.devices||[];
   const name=$('#dName').value.trim();if(!name){toast('Nhập tên thiết bị','err');return;}
   const info=$('#dInfo').value.trim();
-  if(editing){const dv=h.devices.find(x=>x.id===id);if(dv){dv.name=name;dv.info=info;}}
-  else h.devices.push({id,name,info,logs:[]});
+  const cycleMonths=(($('#dCycle')&&$('#dCycle').value)||'').replace(/\D/g,'');
+  if(editing){const dv=h.devices.find(x=>x.id===id);if(dv){dv.name=name;dv.info=info;dv.cycleMonths=cycleMonths;}}
+  else h.devices.push({id,name,info,cycleMonths,logs:[]});
   STORE.save();enqueueDeviceUpsert(id);closeModal();toast('Đã lưu thiết bị','ok');render();
 }
 function deleteDevice(id){
@@ -2201,7 +2217,7 @@ async function ntPullAll(){
     const fins=(F[h.id]||[]).map(f=>({id:f.id,kind:f.kind,month:f.month||'',targetType:f.target_type||'',targetKey:f.target_key||'',
        label:f.label||'',amount:f.amount==null?'':String(f.amount),note:f.note||'',userName:f.user_name||'',userId:f.created_by||'',
        ts:f.created_at?new Date(f.created_at).getTime():Date.now()}));
-    const devs=(D[h.id]||[]).map(d=>({id:d.id,name:d.name||'',info:d.info||'',
+    const devs=(D[h.id]||[]).map(d=>({id:d.id,name:d.name||'',info:d.info||'',cycleMonths:d.cycle_months||'',
        logs:(L[d.id]||[]).map(l=>({id:l.id,content:l.content||'',ts:l.log_date||'',cost:l.cost==null?'':String(l.cost),note:l.note||'',userName:l.user_name||'',tsEntered:l.created_at?new Date(l.created_at).getTime():Date.now()})).sort((a,b)=>(a.tsEntered||0)-(b.tsEntered||0))}));
     return {id:h.id,name:h.name||'',address:h.address||'',
       manager:{name:h.manager_name||'',birthYear:h.manager_birth_year||'',signature:mkImg(h.manager_signature_url)},
@@ -2273,7 +2289,7 @@ async function ntApplyOp(op){
   }
   else if(op.entity==='device'&&op.type==='upsert'){
     const d=op.device, hid=op.houseId;
-    let r=await SB.from('nt_devices').upsert({id:d.id,house_id:hid,name:d.name||null,info:d.info||null}); if(r.error)throw r.error;
+    let r=await SB.from('nt_devices').upsert({id:d.id,house_id:hid,name:d.name||null,info:d.info||null,cycle_months:d.cycleMonths||null}); if(r.error)throw r.error;
     r=await SB.from('nt_maintenance_logs').delete().eq('device_id',d.id); if(r.error)throw r.error;
     if((d.logs||[]).length){ r=await SB.from('nt_maintenance_logs').insert(d.logs.map(l=>{const o={id:l.id,device_id:d.id,content:l.content||null,log_date:l.ts||null,cost:numOrNull(l.cost),note:l.note||null,user_name:l.userName||null};if(l.tsEntered)o.created_at=new Date(Number(l.tsEntered)).toISOString();return o;})); if(r.error)throw r.error; }
     await ntLog('update','device',d.id,hid,'Cập nhật thiết bị '+(d.name||''));
