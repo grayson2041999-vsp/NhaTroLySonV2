@@ -1153,7 +1153,7 @@ function renderContractTable(box,h){
       (open?`<tr class="finact"><td class="c-stt"></td><td colspan="2" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
         <button class="btn sec sm" onclick="event.stopPropagation();showPersonInfo('${p.ctId}')"><i data-lucide="eye"></i> Xem</button>
         <button class="btn sm" onclick="event.stopPropagation();contractForm('${p.type}','${p.ctId}')"><i data-lucide="pencil"></i> Sửa</button>
-        ${p.type==='KTX'?`<button class="btn ok sm" onclick="event.stopPropagation();exportContractPdf('${p.ctId}')"><i data-lucide="file-text"></i> PDF</button>`:''}
+        <button class="btn ok sm" onclick="event.stopPropagation();exportContractPdf('${p.ctId}')"><i data-lucide="file-text"></i> PDF</button>
         <button class="btn danger sm" onclick="event.stopPropagation();deleteContract('${p.ctId}')"><i data-lucide="trash-2"></i> Xoá</button>
       </div></td></tr>`:'');}).join('');
   rooms.forEach(room=>{const all=(byRoomId[room.id]||[]);const list=all.filter(match);
@@ -1189,7 +1189,8 @@ function showPersonInfo(ctId){
       <div class="sectitle">Thuê</div>${kv('Phòng',room?room.name:'—')}${kv('Thời hạn',fmtDateVi(ct.rentStart)+' → '+fmtDateVi(ct.rentEnd))}${kv('Tiền giường/tháng',money(ct.pricePerBed))}
       ${mgrBlock}`;
   }else{
-    html=`<span class="badge tro">Hợp đồng phòng trọ</span>
+    html=`<button class="btn ok block" style="margin-bottom:12px" onclick="exportContractPdf('${ct.id}')"><i data-lucide="file-text"></i> Xuất hợp đồng (PDF) & chia sẻ</button>
+      <span class="badge tro">Hợp đồng phòng trọ</span>
       <div class="sectitle">Phòng &amp; thời hạn</div>${kv('Phòng',room?room.name:'—')}${kv('Thời hạn',fmtDateVi(ct.rentStart)+' → '+fmtDateVi(ct.rentEnd))}
       <div class="sectitle">Đơn giá</div>${kv('Tiền phòng/tháng',money(ct.pricePerRoom))}${kv('Tiền nước/người',money(ct.waterPerPerson))}${kv('Tiền dịch vụ/người',money(ct.servicePerPerson))}${kv('Tiền xe/xe',money(ct.vehiclePerVehicle))}${kv('Tiền điện/kWh',money(ct.electricPerKwh))}
       <div class="sectitle">Khách thuê (${(ct.customers||[]).length})</div>
@@ -1937,17 +1938,94 @@ function buildKtxDocDef(h,ct){
     ]
   };
 }
+function buildTroDocDef(h,ct){
+  const custs=(ct.customers||[]);const m=h.manager||{};
+  const room=(h.rooms||[]).find(r=>r.id===ct.roomId)||{};
+  const sp=(ct.rentStart||'').split('-');const ngay=sp[2]||'…',thang=sp[1]||'…',nam=sp[0]||'…';
+  const roomPrice=Number(ct.pricePerRoom)||0;
+  const water=Number(ct.waterPerPerson)||0,service=Number(ct.servicePerPerson)||0,vehicle=Number(ct.vehiclePerVehicle)||0,elec=Number(ct.electricPerKwh)||0;
+  const eq=(room.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>(e.condition&&e.condition.trim())?`${e.name} — ${e.condition}`:e.name);
+  const vnd=n=>Number(n||0).toLocaleString('vi-VN')+' đồng';
+  // BÊN THUÊ NHÀ: liệt kê hết người trong phòng
+  const benB=[{text:[{text:`BÊN THUÊ NHÀ (Gọi tắt là bên B) — gồm ${custs.length} người:`,bold:true}]}];
+  if(custs.length){
+    custs.forEach((c,i)=>{
+      benB.push({text:`${i+1}. Ông/bà: ${c.name||'…'}      Ngày sinh: ${fmtDate(c.dob)}      Số điện thoại: ${c.phone||'…'}`,margin:[0,i?3:2,0,0]});
+      benB.push({text:`     CCCD số: ${c.cccd||'…'}${c.bienso?('      Biển số xe: '+c.bienso):''}`});
+    });
+  }else benB.push({text:'…………………………………………'});
+  benB[benB.length-1].margin=[0,0,0,8];
+  // Chữ ký bên B (mỗi người 1 ô ký)
+  const benBSig={width:'*',stack:[{text:'BÊN THUÊ (BÊN B)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'}]};
+  if(custs.length)custs.forEach(c=>{benBSig.stack.push(sigImgNode(c.signature));benBSig.stack.push({text:c.name||'',alignment:'center',margin:[0,2,0,6]});});
+  else{benBSig.stack.push(sigImgNode(null));}
+  // Phụ lục ảnh: mỗi người 1 trang
+  const appendix=[{text:'PHỤ LỤC ĐÍNH KÈM HỢP ĐỒNG',bold:true,fontSize:14,alignment:'center',pageBreak:'before',margin:[0,0,0,14]}];
+  custs.forEach((c,i)=>{
+    appendix.push({text:`${i+1}. ${c.name||''}`,bold:true,fontSize:12,margin:[0,0,0,4],pageBreak:i?'before':undefined});
+    appendix.push({text:'Hình ảnh CCCD',bold:true,margin:[0,4,0,2]},photoNode(c.cccdPhoto));
+    appendix.push({text:'Hình ảnh khách hàng',bold:true,margin:[0,4,0,2]},photoNode(c.customerPhoto));
+  });
+  return {
+    pageSize:'A4',pageMargins:[50,40,50,50],
+    defaultStyle:{font:'Roboto',fontSize:11,lineHeight:1.3},
+    content:[
+      {text:'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',bold:true,alignment:'center'},
+      {text:'Độc lập - Tự do - Hạnh phúc',bold:true,alignment:'center',decoration:'underline',margin:[0,2,0,2]},
+      {text:'------------------',alignment:'center',margin:[0,0,0,8]},
+      {text:'HỢP ĐỒNG THUÊ PHÒNG TRỌ',bold:true,fontSize:14,alignment:'center',margin:[0,0,0,10]},
+      {text:`TP. Hồ Chí Minh, ngày ${ngay} tháng ${thang} năm ${nam}, chúng tôi gồm:`,margin:[0,0,0,8]},
+      {text:[{text:'BÊN CHO THUÊ NHÀ (Gọi tắt là bên A): ',bold:true}]},
+      {text:`Ông/bà: ${m.name||'…'}      Năm sinh: ${m.birthYear||'…'}`,margin:[0,0,0,6]},
+      ...benB,
+      {text:'Điều 1: Phòng cho thuê và mục đích thuê:',bold:true,margin:[0,4,0,2]},
+      {text:`Bên A đồng ý cho Bên B thuê phòng số ${room.name||'…'} tại căn nhà ${h.name||'…'} để ở với số người tối đa là ${room.maxPeople||'…'} người.`},
+      {text:'Đồ dùng, trang thiết bị trong phòng, trong nhà và tình trạng sử dụng:',margin:[0,4,0,2]},
+      ulOrDots(eq),
+      {text:'Điều 2: Thời gian cho thuê:',bold:true,margin:[0,4,0,2]},
+      {text:`Thời gian cho thuê: từ ngày ${isoToDmy(ct.rentStart)||'…/…/…'} đến ngày ${isoToDmy(ct.rentEnd)||'…/…/…'}`,margin:[0,0,0,8]},
+      {text:'Điều 3: Giá cho thuê và thời hạn thanh toán:',bold:true,margin:[0,4,0,2]},
+      {text:`Giá thuê phòng: ${vnd(roomPrice)}/tháng (bằng chữ: ${docTien(roomPrice)}/tháng).`},
+      {text:`Tiền điện: ${vnd(elec)}/kWh, tính theo chỉ số điện thực tế sử dụng hằng tháng.`},
+      {text:`Tiền nước: ${vnd(water)}/người/tháng.`},
+      {text:`Tiền xe: ${vnd(vehicle)}/xe/tháng.`},
+      {text:`Tiền dịch vụ: ${vnd(service)}/người/tháng.`,margin:[0,0,0,4]},
+      {text:'Tiền đặt cọc',bold:true},
+      {text:`Bên B đặt cọc cho Bên A số tiền ${vnd(roomPrice)} (bằng chữ: ${docTien(roomPrice)}), bằng một tháng tiền thuê phòng.`},
+      {text:'Tiền cọc và tiền thuê tháng đầu tiên phải được thanh toán ngay sau khi ký kết hợp đồng này.'},
+      {text:'Thời hạn thanh toán tiền thuê phòng: từ ngày 01 (một) đến hết ngày 05 (năm) hàng tháng.',margin:[0,0,0,8]},
+      {text:'ĐIỀU 4: QUYỀN VÀ NGHĨA VỤ CỦA BÊN A',bold:true,margin:[0,4,0,2]},ulOrDots(h.dieu4),
+      {text:'ĐIỀU 5: QUYỀN VÀ NGHĨA VỤ CỦA BÊN B',bold:true,margin:[0,4,0,2]},ulOrDots(h.dieu5),
+      {text:'ĐIỀU 6: THỎA THUẬN KHÁC',bold:true,margin:[0,4,0,2]},ulOrDots(h.dieu6),
+      {columns:[
+        {width:'*',stack:[{text:'BÊN CHO THUÊ (BÊN A)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(m.signature),{text:m.name||'',alignment:'center',margin:[0,2,0,0]}]},
+        benBSig
+      ],margin:[0,24,0,0]},
+      {text:`Xuất ngày ${new Date().toLocaleDateString('vi-VN')} lúc ${new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`,italics:true,fontSize:9,color:'#888',alignment:'right',margin:[0,14,0,0]},
+      ...appendix
+    ]
+  };
+}
 async function exportContractPdf(ctId){
   const h=STORE.house(APP.houseId);const ct=(h.contracts||[]).find(x=>x.id===ctId);
-  if(!ct||ct.type!=='KTX'){toast('Chỉ áp dụng hợp đồng KTX','err');return;}
+  if(!ct){toast('Không tìm thấy hợp đồng','err');return;}
   toast('Đang tạo PDF…');
   try{await ensurePdfMake();}catch(e){toast('Cần kết nối mạng để tạo PDF','err');return;}
   try{
-    const cc=ct.customer||{};
-    await Promise.all([ntEnsureDataUrl(cc.cccdPhoto),ntEnsureDataUrl(cc.customerPhoto),ntEnsureDataUrl(cc.signature),ntEnsureDataUrl(h.manager&&h.manager.signature)]);
-    const dd=buildKtxDocDef(h,ct);
+    const jobs=[ntEnsureDataUrl(h.manager&&h.manager.signature)];
+    let dd,baseName;
+    if(ct.type==='KTX'){
+      const cc=ct.customer||{};
+      jobs.push(ntEnsureDataUrl(cc.cccdPhoto),ntEnsureDataUrl(cc.customerPhoto),ntEnsureDataUrl(cc.signature));
+      await Promise.all(jobs);
+      dd=buildKtxDocDef(h,ct);baseName=cc.name||'KTX';
+    }else{
+      (ct.customers||[]).forEach(c=>jobs.push(ntEnsureDataUrl(c.cccdPhoto),ntEnsureDataUrl(c.customerPhoto),ntEnsureDataUrl(c.signature)));
+      await Promise.all(jobs);
+      dd=buildTroDocDef(h,ct);baseName=((ct.customers||[])[0]&&ct.customers[0].name)||'PhongTro';
+    }
     pdfMake.createPdf(dd).getBlob(async(blob)=>{
-      const fname=`HopDong_${((ct.customer&&ct.customer.name)||'KTX').replace(/\s+/g,'_')}.pdf`;
+      const fname=`HopDong_${String(baseName).replace(/\s+/g,'_')}.pdf`;
       const file=new File([blob],fname,{type:'application/pdf'});
       if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{await navigator.share({files:[file],title:'Hợp đồng thuê phòng'});}catch(e){}
