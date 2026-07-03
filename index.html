@@ -1370,7 +1370,7 @@ function renderFinanceTab(c,h,kind){
     const prof={};(NT.profiles||[]).forEach(p=>prof[p.id]=p);
     const avatarFor=(e)=>{const p=e.userId?prof[e.userId]:null;return ntAvatarHtml(e.userName||(p&&p.name)||'?',p&&p.avatar,30);};
     rows=`<div class="tablewrap"><table class="fin-table fin-${kind}">
-      <thead><tr><th class="c-stt">STT</th><th class="c-ava"></th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th></tr></thead>
+      <thead><tr><th class="c-stt">No</th><th class="c-ava"></th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th></tr></thead>
       <tbody>${list.map((e,i)=>{const col=personColor(e.userId||('nm:'+(e.userName||'?')));const open=(APP.finOpen===e.id);
         return `<tr class="finrow${open?' open':''}"${locked?'':` onclick="setFinOpen('${e.id}')" style="cursor:pointer"`}>
           <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td>
