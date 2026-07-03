@@ -163,6 +163,7 @@ tr:last-child td{border-bottom:none}
   .fin-table .c-nhap{width:42px;padding-right:2px}
   .fin-table .c-stt{width:26px;padding-left:2px;padding-right:4px;text-align:center}
   .fin-table .c-money{width:96px;white-space:nowrap;padding-left:6px}
+  .fin-table .c-ava{width:38px;padding:6px 2px}
   .fin-thu .c-note{width:44px}
   .fin-table .c-act{width:54px}
   /* cột Đối tượng / Nội dung (.c-obj) tự nhận phần rộng còn lại */
@@ -184,6 +185,10 @@ tr:last-child td{border-bottom:none}
   .hd-table .c-act{width:46px}
 }
 .roomhead td{background:var(--primary-light);font-weight:700;color:var(--primary-dark)}
+.fin-table .c-ava{width:44px;text-align:center;padding-left:2px;padding-right:2px}
+.finava{display:inline-flex;vertical-align:middle;cursor:pointer}
+.finrow.open{background:var(--primary-light)}
+.finact td{padding-top:0;border-bottom:1px solid var(--border)}
 .linkbtn{background:none;border:none;color:var(--primary);font-weight:600;text-decoration:underline;padding:0}
 
 .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
@@ -407,7 +412,7 @@ function fileToResizedDataURL(file,maxW,q){
 }
 
 /* ---------- app state ---------- */
-const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'xe',finFilter:''};
+const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'xe',finFilter:'',finOpen:''};
 
 /* ---------- MODAL ---------- */
 function openModal({title,bodyHTML,footHTML,onMount}){
@@ -1361,15 +1366,19 @@ function renderFinanceTab(c,h,kind){
   let rows='';
   if(list.length){
     const col1=kind==='chi'?'Nội dung':'Đối tượng';
-    const noteHead='';
-    // map key -> tên rút gọn (chỉ tab Doanh thu); khoản đã nhập cũng tự rút gọn theo
     const tShort={};if(kind==='thu')financeTargets(h).forEach(t=>{tShort[t.key]=t.short;});
+    const prof={};(NT.profiles||[]).forEach(p=>prof[p.id]=p);
+    const avatarFor=(e)=>{const p=e.userId?prof[e.userId]:null;return ntAvatarHtml(e.userName||(p&&p.name)||'?',p&&p.avatar,30);};
     rows=`<div class="tablewrap"><table class="fin-table fin-${kind}">
-      <thead><tr><th class="c-stt">STT</th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th>${noteHead}<th class="c-nhap"><button class="linkbtn" style="font:inherit;letter-spacing:inherit;text-transform:inherit;padding:0" onclick="openFinFilter()">Nhập ▾</button></th>${locked?'':'<th class="c-act"></th>'}</tr></thead>
-      <tbody>${list.map((e,i)=>{const col=personColor(e.userId||('nm:'+(e.userName||'?')));return `<tr style="background:${col.bg}">
-        <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td><td class="c-obj">${esc(((kind==='thu'&&tShort[e.targetKey])||e.label)+(e.note?' ('+e.note+')':''))}</td><td class="c-money">${money(e.amount)}</td><td class="c-nhap">${esc(e.userName||'')}</td>
-        ${locked?'':`<td class="c-act"><button class="linkbtn" onclick="financeForm('${kind}','${e.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="deleteFinance('${e.id}')">Xoá</button></td>`}
-      </tr>`;}).join('')}</tbody></table></div>`;
+      <thead><tr><th class="c-stt">STT</th><th class="c-ava"></th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th></tr></thead>
+      <tbody>${list.map((e,i)=>{const col=personColor(e.userId||('nm:'+(e.userName||'?')));const open=(APP.finOpen===e.id);
+        return `<tr class="finrow${open?' open':''}"${locked?'':` onclick="setFinOpen('${e.id}')" style="cursor:pointer"`}>
+          <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td>
+          <td class="c-ava"><span class="finava" data-name="${esc(e.userName||'')}" onclick="event.stopPropagation();filterFinByName(this.dataset.name)" title="${esc(e.userName||'')}">${avatarFor(e)}</span></td>
+          <td class="c-obj">${esc(((kind==='thu'&&tShort[e.targetKey])||e.label)+(e.note?' ('+e.note+')':''))}</td>
+          <td class="c-money">${money(e.amount)}</td></tr>${(open&&!locked)?`<tr class="finact"><td class="c-stt"></td><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn sec sm" onclick="event.stopPropagation();financeForm('${kind}','${e.id}')"><i data-lucide="pencil"></i> Sửa</button>
+            <button class="btn danger sm" onclick="event.stopPropagation();deleteFinance('${e.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:''}`;}).join('')}</tbody></table></div>`;
   } else { rows=`<div class="empty"><div class="ic">${kind==='thu'?'💵':'🧾'}</div>${fp?`Không có khoản ${title.toLowerCase()} nào do <b>${esc(fp)}</b> nhập.`:`Chưa có khoản ${title.toLowerCase()} nào trong tháng này.`}</div>`; }
   c.innerHTML=`
     <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -1397,6 +1406,8 @@ function openFinFilter(){
 }
 function setFinFilter(idx){APP.finFilter=idx<0?'':((window._finPeople||[])[idx]||'');closeModal();render();}
 function clearFinFilter(){APP.finFilter='';render();}
+function filterFinByName(name){APP.finFilter=(APP.finFilter===name?'':name);APP.finOpen='';render();}
+function setFinOpen(id){APP.finOpen=(APP.finOpen===id?'':id);render();}
 function financeForm(kind,id){
   const h=STORE.house(APP.houseId);const am=STORE.activeMonth();
   if(!getCurUser()){toast('Chưa xác định người dùng — hãy đăng nhập lại','err');return;}
@@ -2038,8 +2049,8 @@ function importData(input){const f=input.files[0];if(!f)return;const r=new FileR
 /* ---------- navigation ---------- */
 function goEntry(){APP.screen='entry';APP.houseId=null;scrollTop();render();}
 function goSystem(){APP.screen='system';scrollTop();render();}
-function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';scrollTop();render();}
-function setTab(t){APP.tab=t;APP.finFilter='';scrollTop();render();}
+function enterHouse(id){APP.screen='house';APP.houseId=id;APP.tab='doanhthu';APP.hdView='list';APP.finFilter='';APP.finOpen='';scrollTop();render();}
+function setTab(t){APP.tab=t;APP.finFilter='';APP.finOpen='';scrollTop();render();}
 function scrollTop(){window.scrollTo(0,0);}
 
 /* ============================================================ SUPABASE — ĐĂNG NHẬP & DỮ LIỆU ============================================================ */
