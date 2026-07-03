@@ -188,6 +188,11 @@ tr:last-child td{border-bottom:none}
 .finava{display:inline-flex;vertical-align:middle;cursor:pointer}
 .finrow.open{background:var(--primary-light)}
 .finact td{padding-top:0;border-bottom:1px solid var(--border)}
+/* Bảng Dòng tiền: vừa khít, chữ nhỏ, không cuộn ngang */
+.cf-table{min-width:0;width:100%;table-layout:fixed}
+.cf-table th,.cf-table td{padding:8px 4px;font-size:11.5px;text-align:right;word-break:break-word;vertical-align:top}
+.cf-table th:first-child,.cf-table td:first-child{text-align:left;width:54px}
+.cf-total td{font-weight:800;background:var(--primary-light)}
 .linkbtn{background:none;border:none;color:var(--primary);font-weight:600;text-decoration:underline;padding:0}
 
 .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
@@ -411,7 +416,7 @@ function fileToResizedDataURL(file,maxW,q){
 }
 
 /* ---------- app state ---------- */
-const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'',tkSearch:'',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
+const APP={screen:'entry',houseId:null,tab:'doanhthu',hdView:'list',tkView:'',tkSearch:'',cfOpen:'',finFilter:'',finOpen:'',hdOpen:'',hdSearch:''};
 
 /* ---------- MODAL ---------- */
 function openModal({title,bodyHTML,footHTML,onMount}){
@@ -917,7 +922,7 @@ function renderHouse(c){const h=STORE.house(APP.houseId);if(!h){goEntry();return
 }
 
 /* ---------- TAB THỐNG KÊ ---------- */
-function setTkView(v){APP.tkView=v;APP.tkSearch='';render();}
+function setTkView(v){APP.tkView=v;APP.tkSearch='';APP.cfOpen='';render();}
 function renderTkBody(){const box=document.getElementById('tkBody');if(!box)return;const h=STORE.house(APP.houseId);
   if(APP.tkView==='dongtien')renderCashFlow(box);
   else if(APP.tkView==='cccd')renderCCCD(box);
@@ -962,6 +967,7 @@ function renderEndedContracts(box){
 /* ---------- Dòng tiền (theo nhà): bảng thu/chi theo tháng + biểu đồ lợi nhuận ---------- */
 function getCashflow(h){h.cashflow=h.cashflow||[];return h.cashflow;}
 function cfSorted(h){return getCashflow(h).slice().sort((a,b)=>a.month<b.month?-1:(a.month>b.month?1:0));}
+function setCfOpen(id){APP.cfOpen=(APP.cfOpen===id?'':id);renderTkBody();}
 function renderCashFlow(box){
   const h=STORE.house(APP.houseId);if(!h){box.innerHTML='';return;}
   const cf=cfSorted(h);
@@ -971,14 +977,17 @@ function renderCashFlow(box){
   const lockedCount=(h.lockedMonths||[]).length;
   let rows;
   if(cf.length){
-    rows=`<div class="tablewrap"><table>
-      <thead><tr><th>Tháng</th><th>Doanh thu</th><th>Chi phí</th><th>Lợi nhuận</th><th></th></tr></thead>
-      <tbody>${cf.map(r=>{const p=(Number(r.revenue)||0)-(Number(r.cost)||0);
-        return `<tr><td>${esc(isoToMy(r.month))}</td><td>${money(r.revenue)}</td><td>${money(r.cost)}</td>
-          <td style="font-weight:600;color:${p>=0?'#16a34a':'var(--danger)'}">${money(p)}</td>
-          <td><button class="linkbtn" onclick="cfForm('${r.id}')">Sửa</button> · <button class="linkbtn" style="color:var(--danger)" onclick="cfDelete('${r.id}')">Xoá</button></td></tr>`;}).join('')}</tbody>
-      <tfoot><tr style="font-weight:700"><td>Tổng</td><td>${money(totRev)}</td><td>${money(totCost)}</td><td style="color:${totProfit>=0?'#16a34a':'var(--danger)'}">${money(totProfit)}</td><td></td></tr></tfoot>
-      </table></div>`;
+    const desc=cf.slice().reverse(); /* mới nhất -> cũ nhất */
+    rows=`<div class="tablewrap"><table class="cf-table">
+      <thead><tr><th>Tháng</th><th>Doanh thu</th><th>Chi phí</th><th>Lợi nhuận</th></tr></thead>
+      <tbody>
+        <tr class="cf-total"><td>Tổng</td><td>${money(totRev)}</td><td>${money(totCost)}</td><td style="color:${totProfit>=0?'#16a34a':'var(--danger)'}">${money(totProfit)}</td></tr>
+        ${desc.map(r=>{const p=(Number(r.revenue)||0)-(Number(r.cost)||0);const open=(APP.cfOpen===r.id);
+          return `<tr class="finrow${open?' open':''}" onclick="setCfOpen('${r.id}')" style="cursor:pointer"><td>${esc(isoToMy(r.month))}</td><td>${money(r.revenue)}</td><td>${money(r.cost)}</td><td style="font-weight:600;color:${p>=0?'#16a34a':'var(--danger)'}">${money(p)}</td></tr>`+
+            (open?`<tr class="finact"><td colspan="4" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn sec sm" onclick="event.stopPropagation();cfForm('${r.id}')"><i data-lucide="pencil"></i> Sửa</button>
+              <button class="btn danger sm" onclick="event.stopPropagation();cfDelete('${r.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:'');}).join('')}
+      </tbody></table></div>`;
   }else{
     rows=`<div class="empty"><div class="ic">💵</div>Chưa có dữ liệu dòng tiền.<br>Bấm “<i data-lucide="plus"></i> Thêm tháng” hoặc “⚡ Tự động điền tháng đã chốt”.</div>`;
   }
