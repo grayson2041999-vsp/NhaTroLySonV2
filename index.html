@@ -1416,7 +1416,8 @@ function financeForm(kind,id){
         ${items.length?'':'<div class="hint">Chưa có khoản chi cố định. Thêm ở <b>Quản lý hệ thống → Sửa nhà</b>, hoặc chọn "Khác".</div>'}</div>
       <div id="fChiCustom"></div>
       <div class="field"><label>Số tiền (₫) <span class="req">*</span></label>
-        <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="VD: 500.000"></div>
+        <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="VD: 500.000">
+        <div id="fChiAuto"></div></div>
       <div class="field"><label>Ghi chú</label>
         <input id="fNote" value="${esc(e.note||'')}" placeholder="Nhập kỳ thanh toán của khoản này"></div>
       <div class="hint">Người nhập: <b>${esc(curUserName()||'(chưa chọn)')}</b> · Tháng: <b>${esc(isoToMy(am))}</b></div>`;
@@ -1445,7 +1446,7 @@ function financeForm(kind,id){
     footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn" id="fSave">${editing?'Lưu':'Thêm'}</button>`,
     onMount:(m)=>{$('#fSave',m).onclick=()=>saveFinance(kind,e.id,editing);
       if(kind==='thu'){window._finEdit=e;window._finBreakdown=null;renderCustomZone();renderAmountZone();}
-      if(kind==='chi'){window._finEdit=e;ntChiCustomZone();}}
+      if(kind==='chi'){window._finEdit=e;onChiTargetChange();}}
   });
 }
 /* ----- Việc 2: vùng nhập số tiền thay đổi theo đối tượng (KTX / phòng trọ) ----- */
@@ -1458,7 +1459,9 @@ function ntChiCustomZone(){const h=STORE.house(APP.houseId);const sel=$('#fTarge
 }
 function onChiTargetChange(){const h=STORE.house(APP.houseId);const sel=$('#fTarget');if(!sel)return;
   ntChiCustomZone();
-  if(sel.value.indexOf('item:')===0){const it=(h.expenseItems||[])[Number(sel.value.slice(5))];if(it&&it.amount){const fa=$('#fAmount');if(fa)fa.value=maskThousand(it.amount);}}
+  const auto=$('#fChiAuto'); if(auto){ auto.innerHTML='';
+    if(sel.value.indexOf('item:')===0){const it=(h.expenseItems||[])[Number(sel.value.slice(5))];
+      if(it&&it.amount){auto.innerHTML=`<button type="button" class="btn sec sm" style="margin-top:8px" onclick="autoFillAmount('${it.amount}')">⚡ Tự động: ${money(it.amount)}</button>`;}}}
 }
 /* ----- Vùng tự nhập tên đối tượng/khoản thu khác ----- */
 function renderCustomZone(){
