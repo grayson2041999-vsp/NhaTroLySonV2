@@ -1726,6 +1726,7 @@ function buildKtxDocDef(h,ct){
         {width:'*',stack:[{text:'BÊN CHO THUÊ (BÊN A)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(m.signature),{text:m.name||'',alignment:'center',margin:[0,2,0,0]}]},
         {width:'*',stack:[{text:'BÊN THUÊ (BÊN B)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(c.signature),{text:c.name||'',alignment:'center',margin:[0,2,0,0]}]}
       ],margin:[0,24,0,0]},
+      {text:`Xuất ngày ${new Date().toLocaleDateString('vi-VN')} lúc ${new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`,italics:true,fontSize:9,color:'#888',alignment:'right',margin:[0,14,0,0]},
       {text:'PHỤ LỤC ĐÍNH KÈM HỢP ĐỒNG',bold:true,fontSize:14,alignment:'center',pageBreak:'before',margin:[0,0,0,14]},
       {text:'Hình ảnh CCCD',bold:true,margin:[0,4,0,2]},
       photoNode(c.cccdPhoto),
