@@ -321,7 +321,7 @@ function newImg(){return {imgId:uid(),data:null,url:null};}
 function normalizeImg(o){if(!o||typeof o!=='object')return newImg();if(!o.imgId)o.imgId=uid();if(typeof o.data==='undefined')o.data=null;if(typeof o.url==='undefined')o.url=null;return o;}
 function imgSrc(o){if(!o)return '';if(o.imgId&&IMGCACHE[o.imgId])return IMGCACHE[o.imgId];return o.data||o.url||'';}
 function imgHas(o){return !!(o&&(o.data||o.url||(o.imgId&&IMGCACHE[o.imgId])));}
-function blankCust(){return {name:'',dob:'',phone:'',cccd:'',bienso:'',workplace:'',cccdPhoto:newImg(),customerPhoto:newImg(),signature:newImg()};}
+function blankCust(){return {name:'',dob:'',phone:'',cccd:'',bienso:'',workplace:'',signedAt:'',cccdPhoto:newImg(),customerPhoto:newImg(),signature:newImg()};}
 function normalizeCust(c){c.cccdPhoto=normalizeImg(c.cccdPhoto);c.customerPhoto=normalizeImg(c.customerPhoto);c.signature=normalizeImg(c.signature);return c;}
 
 /* ---------- Lưu ảnh trong IndexedDB (tránh đầy localStorage trên điện thoại) ---------- */
@@ -486,7 +486,7 @@ function signFor(key){
   openSignaturePad('Khách hàng ký tên',async(data)=>{
     const t=imgTargetByKey(key);if(!t||!t.obj)return;
     if(!t.obj[t.field]||typeof t.obj[t.field]!=='object')t.obj[t.field]=newImg();
-    await storeImage(t.obj[t.field],data);updatePreview(key);
+    await storeImage(t.obj[t.field],data);t.obj.signedAt=new Date().toISOString();updatePreview(key);
   });
 }
 /* delegated listener for all photo inputs */
@@ -771,6 +771,7 @@ async function onSignReceived(token, sigData){
     if(t&&t.obj){
       if(!t.obj[t.field]||typeof t.obj[t.field]!=='object')t.obj[t.field]=newImg();
       await storeImage(t.obj[t.field], sigData);
+      t.obj.signedAt=new Date().toISOString();
       updatePreview(p.key);
       done=true;
     }
@@ -795,6 +796,7 @@ async function integrateSignatureToSaved(ctId, custIndex, sigData){
     if(!cust)return false;
     if(!cust.signature||typeof cust.signature!=='object')cust.signature=newImg();
     await storeImage(cust.signature, sigData);
+    cust.signedAt=new Date().toISOString();
     if(!imgHas(ct.managerSignature) && h.manager && imgHas(h.manager.signature)) ct.managerSignature={...h.manager.signature};
     STORE.save();
     enqueueOp({entity:'contract',type:'upsert',houseId:h.id,contract:JSON.parse(JSON.stringify(ct))});
@@ -2161,6 +2163,12 @@ async function ensurePdfMake(){
 }
 function ulOrDots(arr){return (arr&&arr.length)?{ul:arr.slice(),margin:[0,2,0,8]}:{text:'……………………………………',margin:[0,2,0,8]};}
 function sigImgNode(obj){const s=imgSrc(obj);return (s&&s.indexOf('data:')===0)?{image:s,fit:[150,55],alignment:'center',margin:[0,6,0,2]}:{text:'\n\n',margin:[0,12,0,0]};}
+/* thời điểm khách ký -> hiển thị dưới chữ ký + dùng cho dòng ngày tháng đầu hợp đồng */
+function _p2(n){return String(n).padStart(2,'0');}
+function sigTimeNode(iso){ if(!iso)return {text:''}; const d=new Date(iso); if(isNaN(d))return {text:''};
+  return {text:`Đã ký lúc ${_p2(d.getHours())}:${_p2(d.getMinutes())} ngày ${_p2(d.getDate())}/${_p2(d.getMonth()+1)}/${d.getFullYear()}`,alignment:'center',italics:true,fontSize:8,color:'#666',margin:[0,1,0,0]}; }
+function headerDateParts(iso, fallback){ let d=iso?new Date(iso):null; if(!(d&&!isNaN(d)))d=fallback?new Date(fallback):null; if(!(d&&!isNaN(d)))d=new Date(); return {ngay:String(d.getDate()),thang:String(d.getMonth()+1),nam:String(d.getFullYear())}; }
+function latestSignIso(list){ const ds=(list||[]).map(c=>c&&c.signedAt).filter(Boolean).map(s=>new Date(s)).filter(d=>!isNaN(d)); return ds.length? new Date(Math.max.apply(null,ds)).toISOString() : null; }
 function photoNode(obj){const s=imgSrc(obj);return (s&&s.indexOf('data:')===0)?{image:s,fit:[470,330],alignment:'center',margin:[0,4,0,14]}:{text:'(Chưa có ảnh — mở app trên thiết bị đã chụp để xuất kèm ảnh)',italics:true,color:'#888',margin:[0,4,0,14]};}
 /* pdfMake chỉ nhúng ảnh base64 -> tải ảnh từ link (Supabase) về dạng base64 rồi lưu vào IMGCACHE */
 function ntBlobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});}
@@ -2174,7 +2182,7 @@ async function ntEnsureDataUrl(obj){
 function buildKtxDocDef(h,ct){
   const c=ct.customer||{},g=ct.guardian||{},m=h.manager||{};
   const room=(h.rooms||[]).find(r=>r.id===ct.roomId)||{};
-  const sp=(ct.rentStart||'').split('-');const ngay=sp[2]||'…',thang=sp[1]||'…',nam=sp[0]||'…';
+  const _hd=headerDateParts(c.signedAt, ct.rentStart);const ngay=_hd.ngay,thang=_hd.thang,nam=_hd.nam;
   const price=Number(ct.pricePerBed)||0;
   const eq=(room.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>(e.condition&&e.condition.trim())?`${e.name} — ${e.condition}`:e.name);
   return {
@@ -2213,7 +2221,7 @@ function buildKtxDocDef(h,ct){
       {text:'ĐIỀU 6: THỎA THUẬN KHÁC',bold:true,margin:[0,4,0,2]},ulOrDots(h.dieu6),
       {columns:[
         {width:'*',stack:[{text:'BÊN CHO THUÊ (BÊN A)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(m.signature),{text:m.name||'',alignment:'center',margin:[0,2,0,0]}]},
-        {width:'*',stack:[{text:'BÊN THUÊ (BÊN B)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(c.signature),{text:c.name||'',alignment:'center',margin:[0,2,0,0]}]}
+        {width:'*',stack:[{text:'BÊN THUÊ (BÊN B)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'},sigImgNode(c.signature),{text:c.name||'',alignment:'center',margin:[0,2,0,0]},sigTimeNode(c.signedAt)]}
       ],margin:[0,24,0,0]},
       {text:`Xuất ngày ${new Date().toLocaleDateString('vi-VN')} lúc ${new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`,italics:true,fontSize:9,color:'#888',alignment:'right',margin:[0,14,0,0]},
       {text:'PHỤ LỤC ĐÍNH KÈM HỢP ĐỒNG',bold:true,fontSize:14,alignment:'center',pageBreak:'before',margin:[0,0,0,14]},
@@ -2227,7 +2235,7 @@ function buildKtxDocDef(h,ct){
 function buildTroDocDef(h,ct){
   const custs=(ct.customers||[]);const m=h.manager||{};
   const room=(h.rooms||[]).find(r=>r.id===ct.roomId)||{};
-  const sp=(ct.rentStart||'').split('-');const ngay=sp[2]||'…',thang=sp[1]||'…',nam=sp[0]||'…';
+  const _hd=headerDateParts(latestSignIso(custs), ct.rentStart);const ngay=_hd.ngay,thang=_hd.thang,nam=_hd.nam;
   const roomPrice=Number(ct.pricePerRoom)||0;
   const water=Number(ct.waterPerPerson)||0,service=Number(ct.servicePerPerson)||0,vehicle=Number(ct.vehiclePerVehicle)||0,elec=Number(ct.electricPerKwh)||0;
   const eq=(room.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>(e.condition&&e.condition.trim())?`${e.name} — ${e.condition}`:e.name);
@@ -2243,7 +2251,7 @@ function buildTroDocDef(h,ct){
   benB[benB.length-1].margin=[0,0,0,8];
   // Chữ ký bên B (mỗi người 1 ô ký)
   const benBSig={width:'*',stack:[{text:'BÊN THUÊ (BÊN B)',bold:true,alignment:'center'},{text:'(ký và ghi rõ họ tên)',italics:true,fontSize:10,alignment:'center'}]};
-  if(custs.length)custs.forEach(c=>{benBSig.stack.push(sigImgNode(c.signature));benBSig.stack.push({text:c.name||'',alignment:'center',margin:[0,2,0,6]});});
+  if(custs.length)custs.forEach(c=>{benBSig.stack.push(sigImgNode(c.signature));benBSig.stack.push({text:c.name||'',alignment:'center',margin:[0,2,0,0]});benBSig.stack.push(sigTimeNode(c.signedAt));benBSig.stack.push({text:'',margin:[0,0,0,6]});});
   else{benBSig.stack.push(sigImgNode(null));}
   // Phụ lục ảnh: mỗi người 1 trang
   const appendix=[{text:'PHỤ LỤC ĐÍNH KÈM HỢP ĐỒNG',bold:true,fontSize:14,alignment:'center',pageBreak:'before',margin:[0,0,0,14]}];
@@ -2565,7 +2573,7 @@ async function ntPullAll(){
   const R=g(rooms.data,'house_id'), C=g(contracts.data,'house_id'), CU=g(customers.data,'contract_id'),
         F=g(finance.data,'house_id'), D=g(devices.data,'house_id'), L=g(logs.data,'device_id'), LM=g(locked.data,'house_id');
   const mkImg=(url)=>({imgId:uid(),data:null,url:url||null});
-  const cust=(c)=>({name:c.name||'',dob:c.dob||'',phone:c.phone||'',cccd:c.cccd||'',bienso:c.bienso||'',workplace:c.workplace||'',
+  const cust=(c)=>({name:c.name||'',dob:c.dob||'',phone:c.phone||'',cccd:c.cccd||'',bienso:c.bienso||'',workplace:c.workplace||'',signedAt:c.signed_at||'',
      cccdPhoto:mkImg(c.cccd_photo_url),customerPhoto:mkImg(c.customer_photo_url),signature:mkImg(c.signature_url)});
   const houseList=(houses.data||[]).map(h=>{
     const cl=h.clauses||{};
@@ -2632,7 +2640,7 @@ async function ntApplyOp(op){
       status:c.status||'active',end_reason:c.endReason||null,ended_at:c.endedAt||null,ended_by:c.endedBy||null,created_by:me}); if(r.error)throw r.error;
     r=await SB.from('nt_customers').delete().eq('contract_id',c.id); if(r.error)throw r.error;
     const custs=c.type==='KTX'?(c.customer?[c.customer]:[]):(c.customers||[]);
-    if(custs.length){ r=await SB.from('nt_customers').insert(custs.map((cu,i)=>({id:c.id+'_c'+i,contract_id:c.id,name:cu.name||null,dob:cu.dob||null,phone:cu.phone||null,cccd:cu.cccd||null,bienso:cu.bienso||null,workplace:cu.workplace||null,
+    if(custs.length){ r=await SB.from('nt_customers').insert(custs.map((cu,i)=>({id:c.id+'_c'+i,contract_id:c.id,name:cu.name||null,dob:cu.dob||null,phone:cu.phone||null,cccd:cu.cccd||null,bienso:cu.bienso||null,workplace:cu.workplace||null,signed_at:cu.signedAt||null,
       cccd_photo_url:(cu.cccdPhoto||{}).url||null,customer_photo_url:(cu.customerPhoto||{}).url||null,signature_url:(cu.signature||{}).url||null,ord:i}))); if(r.error)throw r.error; }
     await ntLog('update','contract',c.id,hid,'Cập nhật hợp đồng');
   }
