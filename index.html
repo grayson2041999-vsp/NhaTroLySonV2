@@ -321,7 +321,7 @@ function newImg(){return {imgId:uid(),data:null,url:null};}
 function normalizeImg(o){if(!o||typeof o!=='object')return newImg();if(!o.imgId)o.imgId=uid();if(typeof o.data==='undefined')o.data=null;if(typeof o.url==='undefined')o.url=null;return o;}
 function imgSrc(o){if(!o)return '';if(o.imgId&&IMGCACHE[o.imgId])return IMGCACHE[o.imgId];return o.data||o.url||'';}
 function imgHas(o){return !!(o&&(o.data||o.url||(o.imgId&&IMGCACHE[o.imgId])));}
-function blankCust(){return {name:'',dob:'',phone:'',cccd:'',bienso:'',cccdPhoto:newImg(),customerPhoto:newImg(),signature:newImg()};}
+function blankCust(){return {name:'',dob:'',phone:'',cccd:'',bienso:'',workplace:'',cccdPhoto:newImg(),customerPhoto:newImg(),signature:newImg()};}
 function normalizeCust(c){c.cccdPhoto=normalizeImg(c.cccdPhoto);c.customerPhoto=normalizeImg(c.customerPhoto);c.signature=normalizeImg(c.signature);return c;}
 
 /* ---------- Lưu ảnh trong IndexedDB (tránh đầy localStorage trên điện thoại) ---------- */
@@ -1546,6 +1546,7 @@ function contractForm(type,id){
         <div class="field"><label>Số điện thoại</label><input id="c_phone" inputmode="tel" value="${esc(c.phone)}"></div></div>
       <div class="grid2"><div class="field"><label>Số CCCD</label><input id="c_cccd" inputmode="numeric" value="${esc(c.cccd)}"></div>
         <div class="field"><label>Biển số xe</label><input id="c_bienso" value="${esc(c.bienso)}" placeholder="(nếu có)"></div></div>
+      <div class="field"><label>Nơi học tập/làm việc</label><input id="c_workplace" value="${esc(c.workplace)}" placeholder="(nếu có)"></div>
       ${imgField('ktx:cccdPhoto','Ảnh căn cước công dân',c.cccdPhoto)}
       ${imgField('ktx:customerPhoto','Ảnh khách hàng',c.customerPhoto)}
       ${sigField('ktx:signature',c.signature)}
@@ -1597,6 +1598,7 @@ function renderCustList(){const box=$('#custList');if(!box)return;const cs=windo
       <div class="field" style="margin-bottom:8px"><label>SĐT</label><input inputmode="tel" value="${esc(c.phone)}" oninput="window._ctDraft.customers[${i}].phone=this.value"></div></div>
     <div class="grid2"><div class="field" style="margin-bottom:8px"><label>CCCD</label><input inputmode="numeric" value="${esc(c.cccd)}" oninput="window._ctDraft.customers[${i}].cccd=this.value"></div>
       <div class="field" style="margin-bottom:8px"><label>Biển số xe</label><input value="${esc(c.bienso)}" placeholder="(nếu có)" oninput="window._ctDraft.customers[${i}].bienso=this.value"></div></div>
+    <div class="field" style="margin-bottom:8px"><label>Nơi học tập/làm việc</label><input value="${esc(c.workplace)}" placeholder="(nếu có)" oninput="window._ctDraft.customers[${i}].workplace=this.value"></div>
     ${imgField('cust:'+i+':cccdPhoto','Ảnh căn cước công dân',c.cccdPhoto)}
     ${imgField('cust:'+i+':customerPhoto','Ảnh khách hàng',c.customerPhoto)}
     ${sigField('cust:'+i+':signature',c.signature)}
@@ -1614,7 +1616,7 @@ function saveContract(type,editing){
   if(type==='KTX'){
     const name=$('#c_name').value.trim();if(!name){toast('Nhập họ tên khách hàng','err');return;}
     const dob=dmyToIso($('#c_dob').value);if(dob===null){toast('Ngày sinh không hợp lệ (DD/MM/YYYY)','err');return;}
-    const c=ct.customer;c.name=name;c.dob=dob;c.phone=$('#c_phone').value.trim();c.cccd=$('#c_cccd').value.trim();c.bienso=$('#c_bienso').value.trim();
+    const c=ct.customer;c.name=name;c.dob=dob;c.phone=$('#c_phone').value.trim();c.cccd=$('#c_cccd').value.trim();c.bienso=$('#c_bienso').value.trim();c.workplace=$('#c_workplace').value.trim();
     ct.guardian={name:$('#g_name').value.trim(),role:$('#g_role').value,phone:$('#g_phone').value.trim()};
     ct.pricePerBed=unmask($('#c_bed').value);
   }else{
@@ -2189,6 +2191,7 @@ function buildKtxDocDef(h,ct){
       {text:[{text:'BÊN THUÊ NHÀ (Gọi tắt là bên B): ',bold:true}]},
       {text:`Ông/bà: ${c.name||'…'}      Ngày sinh: ${fmtDate(c.dob)}      Số điện thoại: ${c.phone||'…'}`},
       {text:`CCCD số: ${c.cccd||'…'}`},
+      {text:`Nơi học tập/làm việc: ${c.workplace||'…'}`},
       {text:`Người chịu trách nhiệm: ${g.name||'…'}`},
       {text:`Vai trò: ${g.role||'…'}      Số điện thoại: ${g.phone||'…'}`,margin:[0,0,0,8]},
       {text:'Điều 1: Phòng cho thuê và mục đích thuê:',bold:true,margin:[0,4,0,2]},
@@ -2234,7 +2237,7 @@ function buildTroDocDef(h,ct){
   if(custs.length){
     custs.forEach((c,i)=>{
       benB.push({text:`${i+1}. Ông/bà: ${c.name||'…'}      Ngày sinh: ${fmtDate(c.dob)}      Số điện thoại: ${c.phone||'…'}`,margin:[0,i?3:2,0,0]});
-      benB.push({text:`     CCCD số: ${c.cccd||'…'}${c.bienso?('      Biển số xe: '+c.bienso):''}`});
+      benB.push({text:`     CCCD số: ${c.cccd||'…'}${c.bienso?('      Biển số xe: '+c.bienso):''}${c.workplace?('      Nơi học tập/làm việc: '+c.workplace):''}`});
     });
   }else benB.push({text:'…………………………………………'});
   benB[benB.length-1].margin=[0,0,0,8];
@@ -2562,7 +2565,7 @@ async function ntPullAll(){
   const R=g(rooms.data,'house_id'), C=g(contracts.data,'house_id'), CU=g(customers.data,'contract_id'),
         F=g(finance.data,'house_id'), D=g(devices.data,'house_id'), L=g(logs.data,'device_id'), LM=g(locked.data,'house_id');
   const mkImg=(url)=>({imgId:uid(),data:null,url:url||null});
-  const cust=(c)=>({name:c.name||'',dob:c.dob||'',phone:c.phone||'',cccd:c.cccd||'',bienso:c.bienso||'',
+  const cust=(c)=>({name:c.name||'',dob:c.dob||'',phone:c.phone||'',cccd:c.cccd||'',bienso:c.bienso||'',workplace:c.workplace||'',
      cccdPhoto:mkImg(c.cccd_photo_url),customerPhoto:mkImg(c.customer_photo_url),signature:mkImg(c.signature_url)});
   const houseList=(houses.data||[]).map(h=>{
     const cl=h.clauses||{};
@@ -2629,7 +2632,7 @@ async function ntApplyOp(op){
       status:c.status||'active',end_reason:c.endReason||null,ended_at:c.endedAt||null,ended_by:c.endedBy||null,created_by:me}); if(r.error)throw r.error;
     r=await SB.from('nt_customers').delete().eq('contract_id',c.id); if(r.error)throw r.error;
     const custs=c.type==='KTX'?(c.customer?[c.customer]:[]):(c.customers||[]);
-    if(custs.length){ r=await SB.from('nt_customers').insert(custs.map((cu,i)=>({id:c.id+'_c'+i,contract_id:c.id,name:cu.name||null,dob:cu.dob||null,phone:cu.phone||null,cccd:cu.cccd||null,bienso:cu.bienso||null,
+    if(custs.length){ r=await SB.from('nt_customers').insert(custs.map((cu,i)=>({id:c.id+'_c'+i,contract_id:c.id,name:cu.name||null,dob:cu.dob||null,phone:cu.phone||null,cccd:cu.cccd||null,bienso:cu.bienso||null,workplace:cu.workplace||null,
       cccd_photo_url:(cu.cccdPhoto||{}).url||null,customer_photo_url:(cu.customerPhoto||{}).url||null,signature_url:(cu.signature||{}).url||null,ord:i}))); if(r.error)throw r.error; }
     await ntLog('update','contract',c.id,hid,'Cập nhật hợp đồng');
   }
