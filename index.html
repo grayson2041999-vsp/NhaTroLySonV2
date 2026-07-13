@@ -651,18 +651,44 @@ async function createSignLink(key){
   const custName = (t.obj.name||'').trim() || ('khách '+(custIndex+1));
   const ct=window._ctDraft; const h=STORE.house(APP.houseId);
   const token = uid()+uid()+Math.random().toString(36).slice(2,12);   // token bí mật, dài
-  toast('Đang tạo link ký…');
+  openSignQRModal(custName);                 // MỞ hộp thoại ngay, luôn thấy được
+  let payload; try{ payload=buildSignPayload(custIndex); }
+  catch(e){ setSignQRStatus('Lỗi chuẩn bị dữ liệu: '+esc(e.message||e), true); return; }
   try{
     const {error}=await SB.from('nt_sign_requests').insert({
       token, contract_id: ct.id, house_id: h.id,
       cust_index: custIndex, cust_name: custName,
-      payload: buildSignPayload(custIndex), status:'pending', created_by: NT.user.id
+      payload, status:'pending', created_by: NT.user.id
     });
     if(error)throw error;
-  }catch(e){ console.warn('createSignLink',e); toast('Chưa tạo được link — hãy chạy file supabase_sign_requests.sql','err'); return; }
+  }catch(e){
+    console.warn('createSignLink insert error:',e);
+    setSignQRStatus('Chưa tạo được link. Bạn đã chạy file <b>supabase_sign_requests.sql</b> trong Supabase chưa?<br><span style="font-size:11px;opacity:.8">Chi tiết: '+esc(e.message||e.hint||JSON.stringify(e))+'</span>', true);
+    return;
+  }
   _signPending[token]={key, ctId: ct.id, custName};
   subscribeSign(token);
-  showSignQR(token, custName);
+  fillSignQR(signOrigin()+'?sign='+token);
+}
+
+function openSignQRModal(custName){
+  openModal2({title:'Khách ký trên máy khách',
+    bodyHTML:`<div style="text-align:center">
+      <p class="muted" style="font-size:13px;margin:0 0 10px">Đưa <b>${esc(custName)}</b> dùng camera điện thoại quét mã QR để mở hợp đồng và ký. Link có hiệu lực 24 giờ.</p>
+      <div id="signQR" style="display:flex;justify-content:center;align-items:center;min-height:236px;padding:12px;background:#fff;border-radius:12px;color:#334155">Đang tạo link…</div>
+      <div id="signWait" class="muted" style="font-size:13px;margin-top:12px"></div>
+      <div id="signLinkRow" style="margin-top:10px;display:none"><button class="btn sec sm" type="button" id="signCopyBtn">📋 Sao chép link</button></div>
+    </div>`});
+}
+function setSignQRStatus(html, isErr){
+  const q=document.getElementById('signQR');
+  if(q)q.innerHTML='<div style="font-size:13px;'+(isErr?'color:#dc2626':'')+'">'+html+'</div>';
+}
+async function fillSignQR(url){
+  const w=document.getElementById('signWait'); if(w)w.textContent='⏳ Đang chờ khách ký…';
+  const row=document.getElementById('signLinkRow');
+  if(row){ row.style.display=''; const b=document.getElementById('signCopyBtn'); if(b)b.onclick=()=>copySignLink(url); }
+  await renderQR(document.getElementById('signQR'), url);
 }
 
 /* Nghe realtime: khi khách ký xong -> gắn chữ ký vào bản nháp đang mở */
@@ -689,22 +715,18 @@ async function onSignReceived(token, sigData){
   toast('Khách đã ký ✓','ok');
 }
 
-function showSignQR(token, custName){
-  const url=signOrigin()+'?sign='+token;
-  openModal2({title:'Khách ký trên máy khách',
-    bodyHTML:`<div style="text-align:center">
-      <p class="muted" style="font-size:13px;margin:0 0 10px">Đưa <b>${esc(custName)}</b> dùng camera điện thoại quét mã QR để mở hợp đồng và ký. Link có hiệu lực 24 giờ.</p>
-      <div id="signQR" style="display:flex;justify-content:center;padding:12px;background:#fff;border-radius:12px"></div>
-      <div id="signWait" class="muted" style="font-size:13px;margin-top:12px">⏳ Đang chờ khách ký…</div>
-      <div style="margin-top:10px"><button class="btn sec sm" type="button" onclick="copySignLink('${url}')">📋 Sao chép link</button></div>
-    </div>`,
-    onMount:(m)=>{ renderQR(m.querySelector('#signQR'), url); }});
-}
 function copySignLink(url){ try{navigator.clipboard.writeText(url);toast('Đã sao chép link','ok');}catch(e){toast(url);} }
 async function renderQR(box, text){
-  try{ await ensureQR(); box.innerHTML=''; const cv=document.createElement('canvas'); box.appendChild(cv);
-    QRCode.toCanvas(cv, text, {width:236,margin:1}, err=>{ if(err){box.innerHTML='<div class="muted" style="word-break:break-all;font-size:12px">'+esc(text)+'</div>';} });
-  }catch(e){ box.innerHTML='<div class="muted" style="word-break:break-all;font-size:12px">'+esc(text)+'</div>'; }
+  if(!box)return;
+  try{
+    if(!window.QRCode) await ensureQR();
+    if(!window.QRCode) throw new Error('Thư viện QR chưa tải được');
+    box.innerHTML=''; const cv=document.createElement('canvas'); box.appendChild(cv);
+    await new Promise((res,rej)=>QRCode.toCanvas(cv,text,{width:236,margin:1},e=>e?rej(e):res()));
+  }catch(e){
+    console.warn('QR render fail:',e);
+    box.innerHTML='<div style="font-size:12px;word-break:break-all;color:#334155"><div style="margin-bottom:6px">Không vẽ được ảnh QR (mạng chặn thư viện). Dùng link bên dưới — bấm “Sao chép link” rồi gửi cho khách:</div><a href="'+esc(text)+'" style="color:#0d6efd">'+esc(text)+'</a></div>';
+  }
 }
 
 /* ---------- Trang KÝ dành cho khách (mở bằng link ?sign=TOKEN, không cần đăng nhập) ---------- */
