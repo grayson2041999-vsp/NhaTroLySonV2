@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Nhà trọ Lý Sơn">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.400.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 :root{
   --primary:#0d6efd; --primary-dark:#0a58ca; --primary-light:#e7f1ff;
@@ -462,7 +463,9 @@ function sigField(key,valObj){
   const pid='prev_'+key.replace(/:/g,'_');
   return `<div class="field"><label>Chữ ký khách hàng <span class="muted" style="font-weight:400;font-size:12px">(nếu có)</span></label>
     <div class="imgslot sig" id="${pid}">${imgSlotInner(imgSrc(valObj))}</div>
-    <button type="button" class="btn sec sm" onclick="signFor('${key}')">✍️ Ký tên</button></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn sec sm" onclick="signFor('${key}')">✍️ Ký tại đây</button>
+      <button type="button" class="btn sec sm" onclick="createSignLink('${key}')">📱 Khách ký ở máy khách</button></div></div>`;
 }
 function imgTargetByKey(key){
   const p=key.split(':');
@@ -622,6 +625,142 @@ function trimCanvas(cv){
   }catch(e){return cv.toDataURL('image/png');}
 }
 function sigSave(){if(!_sig.has){toast('Chưa có chữ ký','err');return;}const data=trimCanvas($('#sigCanvas'));closeSig();if(_sig.cb)_sig.cb(data);}
+
+/* ============================================================ KÝ TỪ XA — khách ký trên máy của khách ============================================================ */
+const _signPending={};                 // token -> {key}  (để realtime gắn chữ ký vào đúng khách)
+function signOrigin(){return location.origin+location.pathname;}
+function ensureQR(){return loadScript('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js');}
+
+/* Ảnh chụp toàn bộ hợp đồng hiện tại để gửi cho khách xem + ký (không kèm hợp đồng khác) */
+function buildSignPayload(custIndex){
+  const h=STORE.house(APP.houseId);
+  const hSnap=JSON.parse(JSON.stringify(h));
+  delete hSnap.finance; delete hSnap.devices; delete hSnap.cashflow; delete hSnap.maintenance;
+  hSnap.contracts=[];
+  const ctSnap=JSON.parse(JSON.stringify(window._ctDraft));
+  return {house:hSnap, contract:ctSnap, custIndex:custIndex};
+}
+
+/* Quản lý bấm: tạo link ký + hiện QR cho khách quét */
+async function createSignLink(key){
+  if(!NT.user){toast('Cần đăng nhập','err');return;}
+  if(!window._ctDraft){toast('Mở hợp đồng trước đã','err');return;}
+  const t=imgTargetByKey(key); if(!t||!t.obj){toast('Không xác định được khách','err');return;}
+  const p=key.split(':');
+  const custIndex = p[0]==='cust' ? (+p[1]) : 0;
+  const custName = (t.obj.name||'').trim() || ('khách '+(custIndex+1));
+  const ct=window._ctDraft; const h=STORE.house(APP.houseId);
+  const token = uid()+uid()+Math.random().toString(36).slice(2,12);   // token bí mật, dài
+  toast('Đang tạo link ký…');
+  try{
+    const {error}=await SB.from('nt_sign_requests').insert({
+      token, contract_id: ct.id, house_id: h.id,
+      cust_index: custIndex, cust_name: custName,
+      payload: buildSignPayload(custIndex), status:'pending', created_by: NT.user.id
+    });
+    if(error)throw error;
+  }catch(e){ console.warn('createSignLink',e); toast('Chưa tạo được link — hãy chạy file supabase_sign_requests.sql','err'); return; }
+  _signPending[token]={key, ctId: ct.id, custName};
+  subscribeSign(token);
+  showSignQR(token, custName);
+}
+
+/* Nghe realtime: khi khách ký xong -> gắn chữ ký vào bản nháp đang mở */
+function subscribeSign(token){
+  try{
+    SB.channel('sign_'+token)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'nt_sign_requests',filter:'token=eq.'+token},
+        async(pl)=>{ const row=pl.new; if(row&&row.status==='signed'&&row.signature_data){ await onSignReceived(token,row.signature_data); } })
+      .subscribe();
+  }catch(e){ console.warn('sign realtime',e); }
+}
+async function onSignReceived(token, sigData){
+  const p=_signPending[token]; if(!p)return;
+  if(!window._ctDraft||window._ctDraft.id!==p.ctId){ /* form khác đang mở -> chỉ báo, không gắn nhầm */
+    delete _signPending[token]; toast('Khách '+ (p.custName||'') +' đã ký. Mở lại hợp đồng để cập nhật.','ok'); return;
+  }
+  const t=imgTargetByKey(p.key); if(!t||!t.obj)return;
+  if(!t.obj[t.field]||typeof t.obj[t.field]!=='object')t.obj[t.field]=newImg();
+  await storeImage(t.obj[t.field], sigData);
+  updatePreview(p.key);
+  delete _signPending[token];
+  const w=document.getElementById('signWait'); if(w)w.innerHTML='<span style="color:var(--ok,#16a34a);font-weight:600">✓ Khách đã ký xong</span>';
+  try{setTimeout(closeModal2,900);}catch(e){}
+  toast('Khách đã ký ✓','ok');
+}
+
+function showSignQR(token, custName){
+  const url=signOrigin()+'?sign='+token;
+  openModal2({title:'Khách ký trên máy khách',
+    bodyHTML:`<div style="text-align:center">
+      <p class="muted" style="font-size:13px;margin:0 0 10px">Đưa <b>${esc(custName)}</b> dùng camera điện thoại quét mã QR để mở hợp đồng và ký. Link có hiệu lực 24 giờ.</p>
+      <div id="signQR" style="display:flex;justify-content:center;padding:12px;background:#fff;border-radius:12px"></div>
+      <div id="signWait" class="muted" style="font-size:13px;margin-top:12px">⏳ Đang chờ khách ký…</div>
+      <div style="margin-top:10px"><button class="btn sec sm" type="button" onclick="copySignLink('${url}')">📋 Sao chép link</button></div>
+    </div>`,
+    onMount:(m)=>{ renderQR(m.querySelector('#signQR'), url); }});
+}
+function copySignLink(url){ try{navigator.clipboard.writeText(url);toast('Đã sao chép link','ok');}catch(e){toast(url);} }
+async function renderQR(box, text){
+  try{ await ensureQR(); box.innerHTML=''; const cv=document.createElement('canvas'); box.appendChild(cv);
+    QRCode.toCanvas(cv, text, {width:236,margin:1}, err=>{ if(err){box.innerHTML='<div class="muted" style="word-break:break-all;font-size:12px">'+esc(text)+'</div>';} });
+  }catch(e){ box.innerHTML='<div class="muted" style="word-break:break-all;font-size:12px">'+esc(text)+'</div>'; }
+}
+
+/* ---------- Trang KÝ dành cho khách (mở bằng link ?sign=TOKEN, không cần đăng nhập) ---------- */
+async function openCustomerSignPage(token){
+  const app=document.querySelector('.app'); if(app)app.style.display='none';
+  const wrap=document.createElement('div'); wrap.id='signPageWrap';
+  wrap.style.cssText='position:fixed;inset:0;z-index:250;overflow:auto;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+  wrap.innerHTML='<div class="signInner" style="max-width:820px;margin:0 auto;padding:16px"><div id="signMsg" style="text-align:center;padding:60px 12px">Đang tải hợp đồng…</div></div>';
+  document.body.appendChild(wrap);
+  const box=wrap.querySelector('.signInner');
+
+  let res;
+  try{ const r=await SB.rpc('nt_get_sign_request',{p_token:token}); if(r.error)throw r.error; res=r.data; }
+  catch(e){ console.warn(e); box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">⚠️</div><b>Không kết nối được máy chủ.</b><br>Vui lòng thử lại.</div>'; return; }
+  if(!res||res.error){
+    const map={not_found:'Link không hợp lệ.',expired:'Link đã hết hạn (quá 24 giờ). Hãy xin quản lý tạo link mới.',used:'Hợp đồng này đã được ký.'};
+    box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">⚠️</div><b style="font-size:18px">'+(map[res&&res.error]||'Không mở được link.')+'</b></div>';
+    return;
+  }
+  const h=res.payload.house, ct=res.payload.contract, custName=res.cust_name||'';
+  box.innerHTML=`
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="font-size:22px;font-weight:700">Ký hợp đồng thuê phòng</div>
+      <div style="color:#94a3b8;font-size:14px;margin-top:4px">${esc(h.name||'')} — Khách: <b style="color:#e5e7eb">${esc(custName)}</b></div>
+    </div>
+    <div style="background:#fff;border-radius:12px;overflow:hidden;min-height:420px">
+      <iframe id="ctPdf" style="width:100%;height:68vh;border:0;background:#fff" title="Hợp đồng"></iframe>
+    </div>
+    <div style="position:sticky;bottom:0;padding:14px 0 18px;background:linear-gradient(to top,#0f172a 40%,rgba(15,23,42,.85),transparent)">
+      <div id="signPreview" style="text-align:center;margin-bottom:8px"></div>
+      <button id="btnSign" style="width:100%;padding:16px;background:#0d6efd;color:#fff;border:0;border-radius:12px;font-size:17px;font-weight:700">✍️ Ký tên &amp; gửi</button>
+      <div style="text-align:center;color:#64748b;font-size:12px;margin-top:8px">Bằng việc ký, bạn xác nhận đã đọc và đồng ý toàn bộ nội dung hợp đồng ở trên.</div>
+    </div>`;
+  try{
+    await ensurePdfMake();
+    const imgs=[h.manager&&h.manager.signature];
+    if(ct.type==='KTX'){const c=ct.customer||{};imgs.push(c.cccdPhoto,c.customerPhoto,c.signature);}
+    else (ct.customers||[]).forEach(c=>imgs.push(c.cccdPhoto,c.customerPhoto,c.signature));
+    await Promise.all(imgs.map(o=>ntEnsureDataUrl(o)));
+    const dd=(ct.type==='KTX')?buildKtxDocDef(h,ct):buildTroDocDef(h,ct);
+    pdfMake.createPdf(dd).getDataUrl(u=>{ const f=box.querySelector('#ctPdf'); if(f)f.src=u; });
+  }catch(e){ console.warn('pdf preview',e); const f=box.querySelector('#ctPdf'); if(f)f.outerHTML='<div style="padding:18px;color:#334155">Không tải được bản xem trước hợp đồng. Bạn vẫn có thể ký bên dưới.</div>'; }
+
+  box.querySelector('#btnSign').onclick=()=>{
+    openSignaturePad('Khách hàng ký tên', async(data)=>{
+      const pv=box.querySelector('#signPreview'); if(pv)pv.innerHTML='<img src="'+data+'" style="max-height:66px;background:#fff;border-radius:8px;padding:4px">';
+      const btn=box.querySelector('#btnSign'); if(!btn)return; btn.disabled=true; btn.textContent='Đang gửi…';
+      try{
+        const r=await SB.rpc('nt_submit_signature',{p_token:token,p_sig:data});
+        if(r.error) throw r.error;
+        if(r.data&&r.data.error) throw new Error(r.data.error);
+        box.innerHTML='<div style="text-align:center;padding:70px 16px"><div style="font-size:64px">✅</div><div style="font-size:22px;font-weight:700;margin-top:12px">Đã ký thành công!</div><div style="color:#94a3b8;margin-top:8px">Cảm ơn bạn. Bạn có thể đóng trang này.</div></div>';
+      }catch(e){ console.warn('submit',e); btn.disabled=false; btn.textContent='✍️ Ký tên & gửi'; alert('Không gửi được chữ ký. Link có thể đã hết hạn hoặc đã được ký.'); }
+    });
+  };
+}
 
 /* ---------- image viewer ---------- */
 function viewImg(src){const v=$('#imgViewer');v.innerHTML='';const img=new Image();img.src=src;v.appendChild(img);v.classList.add('show');}
@@ -2530,6 +2669,9 @@ ntIcons();
 
 /* ---------- Khởi động ---------- */
 (async function(){
+  /* Link ký cho khách: ?sign=TOKEN -> mở thẳng trang ký, bỏ qua đăng nhập */
+  const _signTok=new URLSearchParams(location.search).get('sign');
+  if(_signTok){ try{await openCustomerSignPage(_signTok);}catch(e){console.warn(e);} return; }
   try{await idbOpen();const all=await idbAll();all.forEach(x=>{IMGCACHE[x.imgId]=x.data;});}catch(e){}
   try{ const {data:{session}}=await SB.auth.getSession(); if(session){ await ntAfterLogin(); } else { ntShowLogin(); } }
   catch(e){ ntShowLogin('Không kết nối được máy chủ'); }
