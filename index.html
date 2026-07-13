@@ -628,6 +628,7 @@ function sigSave(){if(!_sig.has){toast('Chưa có chữ ký','err');return;}cons
 
 /* ============================================================ KÝ TỪ XA — khách ký trên máy của khách ============================================================ */
 const _signPending={};                 // token -> {key}  (để realtime gắn chữ ký vào đúng khách)
+let _lastQR={url:'',dataUrl:''};       // QR gần nhất (để chia sẻ / tải ảnh)
 function signOrigin(){return location.origin+location.pathname;}
 function ensureQR(){return loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js');}
 
@@ -677,7 +678,10 @@ function openSignQRModal(custName){
       <p class="muted" style="font-size:13px;margin:0 0 10px">Đưa <b>${esc(custName)}</b> dùng camera điện thoại quét mã QR để mở hợp đồng và ký. Link có hiệu lực 24 giờ.</p>
       <div id="signQR" style="display:flex;justify-content:center;align-items:center;min-height:236px;padding:12px;background:#fff;border-radius:12px;color:#334155">Đang tạo link…</div>
       <div id="signWait" class="muted" style="font-size:13px;margin-top:12px"></div>
-      <div id="signLinkRow" style="margin-top:10px;display:none"><button class="btn sec sm" type="button" id="signCopyBtn">📋 Sao chép link</button></div>
+      <div id="signLinkRow" style="margin-top:12px;display:none;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn sm" type="button" id="signShareBtn">📤 Chia sẻ QR</button>
+        <button class="btn sec sm" type="button" id="signCopyBtn">📋 Sao chép link</button>
+      </div>
     </div>`});
 }
 function setSignQRStatus(html, isErr){
@@ -687,8 +691,46 @@ function setSignQRStatus(html, isErr){
 async function fillSignQR(url){
   const w=document.getElementById('signWait'); if(w)w.textContent='⏳ Đang chờ khách ký…';
   const row=document.getElementById('signLinkRow');
-  if(row){ row.style.display=''; const b=document.getElementById('signCopyBtn'); if(b)b.onclick=()=>copySignLink(url); }
+  if(row){
+    row.style.display='flex';
+    const b=document.getElementById('signCopyBtn'); if(b)b.onclick=()=>copySignLink(url);
+    const s=document.getElementById('signShareBtn'); if(s)s.onclick=()=>shareQR();
+  }
   await renderQR(document.getElementById('signQR'), url);
+}
+/* Chia sẻ ảnh QR qua khung chia sẻ của điện thoại (Zalo/Messenger…); không hỗ trợ thì tải ảnh */
+async function shareQR(){
+  const {url,dataUrl}=_lastQR;
+  if(!url){toast('Chưa có mã QR','err');return;}
+  const text='Quét mã hoặc mở link để ký hợp đồng: '+url;
+  try{
+    if(dataUrl && navigator.canShare){
+      const png=await qrToPngBlob(dataUrl);
+      if(png){
+        const file=new File([png],'qr-ky-hop-dong.png',{type:'image/png'});
+        if(navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Ký hợp đồng',text}); return; }
+      }
+    }
+    if(navigator.share){ await navigator.share({title:'Ký hợp đồng',text,url}); return; }
+    downloadQR();
+  }catch(e){ if(e&&e.name==='AbortError')return; console.warn('shareQR',e); downloadQR(); }
+}
+function downloadQR(){
+  const {url,dataUrl}=_lastQR;
+  if(!dataUrl){ copySignLink(url); return; }
+  const a=document.createElement('a'); a.href=dataUrl; a.download='qr-ky-hop-dong.gif'; a.click();
+  toast('Đã tải ảnh QR','ok');
+}
+/* GIF -> PNG (nét, nền trắng) để chia sẻ đẹp & tương thích rộng */
+function qrToPngBlob(dataUrl){
+  return new Promise((res)=>{
+    const img=new Image();
+    img.onload=()=>{ const s=Math.max(img.width,512); const cv=document.createElement('canvas'); cv.width=cv.height=s;
+      const cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,s,s); cx.imageSmoothingEnabled=false; cx.drawImage(img,0,0,s,s);
+      try{ cv.toBlob(b=>res(b),'image/png'); }catch(e){ res(null); } };
+    img.onerror=()=>res(null);
+    img.src=dataUrl;
+  });
 }
 
 /* Nghe realtime: khi khách ký xong -> gắn chữ ký vào bản nháp đang mở */
@@ -724,6 +766,7 @@ async function renderQR(box, text){
     const qr=window.qrcode(0,'M'); qr.addData(text); qr.make();
     box.innerHTML=qr.createImgTag(6,12);
     const img=box.querySelector('img'); if(img){img.style.width='236px';img.style.height='236px';img.style.imageRendering='pixelated';}
+    _lastQR={url:text, dataUrl:qr.createDataURL(6,12)};
   }catch(e){
     console.warn('QR render fail:',e);
     box.innerHTML='<div style="font-size:12px;word-break:break-all;color:#334155"><div style="margin-bottom:6px">Không vẽ được ảnh QR. Dùng link bên dưới — bấm “Sao chép link” rồi gửi cho khách:</div><a href="'+esc(text)+'" style="color:#0d6efd">'+esc(text)+'</a></div>';
