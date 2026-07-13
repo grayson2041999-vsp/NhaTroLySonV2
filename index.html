@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Nhà trọ Lý Sơn">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.400.0/dist/umd/lucide.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
 :root{
   --primary:#0d6efd; --primary-dark:#0a58ca; --primary-light:#e7f1ff;
@@ -629,7 +629,7 @@ function sigSave(){if(!_sig.has){toast('Chưa có chữ ký','err');return;}cons
 /* ============================================================ KÝ TỪ XA — khách ký trên máy của khách ============================================================ */
 const _signPending={};                 // token -> {key}  (để realtime gắn chữ ký vào đúng khách)
 function signOrigin(){return location.origin+location.pathname;}
-function ensureQR(){return loadScript('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js');}
+function ensureQR(){return loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js');}
 
 /* Ảnh chụp toàn bộ hợp đồng hiện tại để gửi cho khách xem + ký (không kèm hợp đồng khác) */
 function buildSignPayload(custIndex){
@@ -719,13 +719,14 @@ function copySignLink(url){ try{navigator.clipboard.writeText(url);toast('Đã s
 async function renderQR(box, text){
   if(!box)return;
   try{
-    if(!window.QRCode) await ensureQR();
-    if(!window.QRCode) throw new Error('Thư viện QR chưa tải được');
-    box.innerHTML=''; const cv=document.createElement('canvas'); box.appendChild(cv);
-    await new Promise((res,rej)=>QRCode.toCanvas(cv,text,{width:236,margin:1},e=>e?rej(e):res()));
+    if(typeof window.qrcode==='undefined') await ensureQR();
+    if(typeof window.qrcode==='undefined') throw new Error('Thư viện QR chưa tải được');
+    const qr=window.qrcode(0,'M'); qr.addData(text); qr.make();
+    box.innerHTML=qr.createImgTag(6,12);
+    const img=box.querySelector('img'); if(img){img.style.width='236px';img.style.height='236px';img.style.imageRendering='pixelated';}
   }catch(e){
     console.warn('QR render fail:',e);
-    box.innerHTML='<div style="font-size:12px;word-break:break-all;color:#334155"><div style="margin-bottom:6px">Không vẽ được ảnh QR (mạng chặn thư viện). Dùng link bên dưới — bấm “Sao chép link” rồi gửi cho khách:</div><a href="'+esc(text)+'" style="color:#0d6efd">'+esc(text)+'</a></div>';
+    box.innerHTML='<div style="font-size:12px;word-break:break-all;color:#334155"><div style="margin-bottom:6px">Không vẽ được ảnh QR. Dùng link bên dưới — bấm “Sao chép link” rồi gửi cho khách:</div><a href="'+esc(text)+'" style="color:#0d6efd">'+esc(text)+'</a></div>';
   }
 }
 
