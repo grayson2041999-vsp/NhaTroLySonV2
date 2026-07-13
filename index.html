@@ -789,6 +789,7 @@ async function sgFetch(token, code){
   try{ const r=await SB.rpc('nt_get_sign_request',{p_token:token, p_cccd4: code||null}); if(r.error)throw r.error; return r.data; }
   catch(e){ console.warn('sgFetch',e); return {error:'network'}; }
 }
+function sgWhen(iso){ const d=new Date(iso); if(isNaN(d))return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())} ngày ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; }
 /* Cổng xác minh 4 số cuối CCCD -> trả về res hợp lệ (ok) hoặc res lỗi */
 function sgAskCccd(box, token, custName){
   return new Promise((resolve)=>{
@@ -858,8 +859,16 @@ async function openCustomerSignPage(token){
   let res=await sgFetch(token, null);
   if(res && res.need_cccd){ res=await sgAskCccd(box, token, res.cust_name||''); }
   if(!res || res.error || !res.ok){
-    const map={not_found:'Link không hợp lệ.',expired:'Link đã hết hạn (quá 24 giờ). Hãy xin quản lý tạo link mới.',used:'Hợp đồng này đã được ký.',network:'Không kết nối được máy chủ. Vui lòng thử lại.'};
-    box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">⚠️</div><b style="font-size:18px">'+(map[res&&res.error]||'Không mở được link.')+'</b></div>';
+    let icon='⚠️', msg;
+    if(res && res.error==='used'){
+      icon='✅';
+      const w=res.signed_at?sgWhen(res.signed_at):'';
+      msg = w ? ('Bạn đã ký hợp đồng này lúc '+w) : 'Hợp đồng này đã được ký.';
+    }else{
+      const map={not_found:'Link không hợp lệ.',expired:'Link đã hết hạn (quá 24 giờ). Hãy xin quản lý tạo link mới.',network:'Không kết nối được máy chủ. Vui lòng thử lại.'};
+      msg = map[res&&res.error]||'Không mở được link.';
+    }
+    box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">'+icon+'</div><b style="font-size:18px">'+esc(msg)+'</b></div>';
     return;
   }
   const h=res.payload.house, ct=res.payload.contract, custName=res.cust_name||'';
