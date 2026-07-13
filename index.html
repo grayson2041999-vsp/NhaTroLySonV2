@@ -273,7 +273,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SB = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const SYNC_URL = ""; // không dùng Apps Script nữa
 const NT = { user:null, profiles:[] }; // user: {id, name, role, phone}
-const VAPID_PUBLIC = "BGLehh0uyeRa2ESeN8l_uS2Uh-jpo0xrVvUQxCxR0s6cAOLWjbTPX5sueDtv1MDr77cATGFf1aLgDfNsnCqgza4";
+const VAPID_PUBLIC = "BLh9mqHtd8v58eQsKoyXKNlY3N9DYChAoK9pstJt98iZqWfo2T9fCqPO0Wp3A0mQWB-D5q86socTHbjuZKRIFDQ";
 
 /* ---------- STORE ---------- */
 const STORE = (function(){
@@ -667,10 +667,27 @@ async function createSignLink(key){
     setSignQRStatus('Chưa tạo được link. Bạn đã chạy file <b>supabase_sign_requests.sql</b> trong Supabase chưa?<br><span style="font-size:11px;opacity:.8">Chi tiết: '+esc(e.message||e.hint||JSON.stringify(e))+'</span>', true);
     return;
   }
-  _signPending[token]={key, ctId: ct.id, custName};
+  _signPending[token]={key, ctId: ct.id, custName, custIndex};
   subscribeSign(token);
+  startSignPoll(token);
   fillSignQR(signOrigin()+'?sign='+token);
 }
+
+/* Hỏi trạng thái định kỳ — đường chính để nhận chữ ký (không phụ thuộc Realtime) */
+let _signPoll=null;
+function startSignPoll(token){
+  stopSignPoll();
+  let ticks=0;
+  _signPoll=setInterval(async()=>{
+    if(!_signPending[token] || ++ticks>720){ stopSignPoll(); return; }  // tối đa ~30 phút
+    try{
+      const {data,error}=await SB.from('nt_sign_requests').select('status,signature_data').eq('token',token).maybeSingle();
+      if(error||!data)return;
+      if(data.status==='signed'&&data.signature_data){ await onSignReceived(token, data.signature_data); }
+    }catch(e){}
+  }, 2500);
+}
+function stopSignPoll(){ if(_signPoll){clearInterval(_signPoll);_signPoll=null;} }
 
 function openSignQRModal(custName){
   openModal2({title:'Khách ký trên máy khách',
@@ -743,18 +760,47 @@ function subscribeSign(token){
   }catch(e){ console.warn('sign realtime',e); }
 }
 async function onSignReceived(token, sigData){
-  const p=_signPending[token]; if(!p)return;
-  if(!window._ctDraft||window._ctDraft.id!==p.ctId){ /* form khác đang mở -> chỉ báo, không gắn nhầm */
-    delete _signPending[token]; toast('Khách '+ (p.custName||'') +' đã ký. Mở lại hợp đồng để cập nhật.','ok'); return;
-  }
-  const t=imgTargetByKey(p.key); if(!t||!t.obj)return;
-  if(!t.obj[t.field]||typeof t.obj[t.field]!=='object')t.obj[t.field]=newImg();
-  await storeImage(t.obj[t.field], sigData);
-  updatePreview(p.key);
+  const p=_signPending[token]; if(!p)return;   // đã xử lý rồi -> bỏ qua (idempotent)
   delete _signPending[token];
-  const w=document.getElementById('signWait'); if(w)w.innerHTML='<span style="color:var(--ok,#16a34a);font-weight:600">✓ Khách đã ký xong</span>';
-  try{setTimeout(closeModal2,900);}catch(e){}
-  toast('Khách đã ký ✓','ok');
+  stopSignPoll();
+  let done=false;
+  /* TH1: đúng hợp đồng đang mở trên form -> gắn vào bản nháp (quản lý bấm Lưu như thường) */
+  if(window._ctDraft && window._ctDraft.id===p.ctId){
+    const t=imgTargetByKey(p.key);
+    if(t&&t.obj){
+      if(!t.obj[t.field]||typeof t.obj[t.field]!=='object')t.obj[t.field]=newImg();
+      await storeImage(t.obj[t.field], sigData);
+      updatePreview(p.key);
+      done=true;
+    }
+  }
+  /* TH2: form đã đóng -> ghi thẳng vào hợp đồng đã lưu + đồng bộ */
+  if(!done){ done=await integrateSignatureToSaved(p.ctId, p.custIndex, sigData); }
+  const w=document.getElementById('signWait');
+  if(w)w.innerHTML='<span style="color:#16a34a;font-weight:700">✓ Khách đã ký xong</span>';
+  try{setTimeout(closeModal2,1200);}catch(e){}
+  if(done){
+    toast('Khách đã ký ✓' + (window._ctDraft&&window._ctDraft.id===p.ctId ? ' — nhớ bấm Lưu hợp đồng' : ' — đã cập nhật'),'ok');
+  }else{
+    toast('Khách '+(p.custName||'')+' đã ký. Mở lại hợp đồng để cập nhật.','ok');
+  }
+}
+/* Gắn chữ ký vào hợp đồng ĐÃ LƯU (khi form không còn mở) và đồng bộ lên máy chủ */
+async function integrateSignatureToSaved(ctId, custIndex, sigData){
+  for(const h of (STORE.houses()||[])){
+    const ct=(h.contracts||[]).find(x=>x.id===ctId);
+    if(!ct)continue;
+    const cust = ct.type==='KTX' ? ct.customer : (ct.customers||[])[custIndex||0];
+    if(!cust)return false;
+    if(!cust.signature||typeof cust.signature!=='object')cust.signature=newImg();
+    await storeImage(cust.signature, sigData);
+    if(!imgHas(ct.managerSignature) && h.manager && imgHas(h.manager.signature)) ct.managerSignature={...h.manager.signature};
+    STORE.save();
+    enqueueOp({entity:'contract',type:'upsert',houseId:h.id,contract:JSON.parse(JSON.stringify(ct))});
+    try{render();}catch(e){}
+    return true;
+  }
+  return false;
 }
 
 function copySignLink(url){ try{navigator.clipboard.writeText(url);toast('Đã sao chép link','ok');}catch(e){toast(url);} }
@@ -2708,6 +2754,8 @@ async function ntEnablePush(force){
     let perm=Notification.permission;
     if(perm==='default') perm=await Notification.requestPermission();
     if(perm!=='granted'){ if(force)toast('Chưa bật thông báo — vào Cài đặt để cho phép','err'); return; }
+    /* Khóa VAPID đã đổi -> tự đăng ký lại (nếu không sẽ dùng khóa cũ, push bị từ chối) */
+    if(localStorage.getItem('nt_vapid_key')!==VAPID_PUBLIC) force=true;
     let sub=await reg.pushManager.getSubscription();
     if(force && sub){ /* hủy đăng ký cũ để tạo lại đúng khóa hiện tại */
       const oldEp=sub.endpoint; try{await sub.unsubscribe();}catch(e){}
@@ -2717,6 +2765,7 @@ async function ntEnablePush(force){
     if(!sub){ sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)}); }
     const j=sub.toJSON();
     await SB.from('nt_push_subscriptions').upsert({user_id:NT.user.id, endpoint:sub.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth},{onConflict:'endpoint'});
+    try{localStorage.setItem('nt_vapid_key', VAPID_PUBLIC);}catch(e){}
   }catch(e){ console.warn('Bật đẩy lỗi:',e); if(force)toast('Bật thông báo lỗi','err'); }
 }
 
