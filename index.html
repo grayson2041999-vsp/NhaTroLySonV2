@@ -650,6 +650,7 @@ async function createSignLink(key){
   const p=key.split(':');
   const custIndex = p[0]==='cust' ? (+p[1]) : 0;
   const custName = (t.obj.name||'').trim() || ('khách '+(custIndex+1));
+  const cccd4 = ((t.obj.cccd||'').replace(/\D/g,'')).slice(-4);   // 4 số cuối CCCD để khách xác minh khi mở link
   const ct=window._ctDraft; const h=STORE.house(APP.houseId);
   const token = uid()+uid()+Math.random().toString(36).slice(2,12);   // token bí mật, dài
   openSignQRModal(custName);                 // MỞ hộp thoại ngay, luôn thấy được
@@ -658,7 +659,7 @@ async function createSignLink(key){
   try{
     const {error}=await SB.from('nt_sign_requests').insert({
       token, contract_id: ct.id, house_id: h.id,
-      cust_index: custIndex, cust_name: custName,
+      cust_index: custIndex, cust_name: custName, cccd_last4: cccd4,
       payload, status:'pending', created_by: NT.user.id
     });
     if(error)throw error;
@@ -820,19 +821,50 @@ async function renderQR(box, text){
 }
 
 /* ---------- Trang KÝ dành cho khách (mở bằng link ?sign=TOKEN, không cần đăng nhập) ---------- */
+async function sgFetch(token, code){
+  try{ const r=await SB.rpc('nt_get_sign_request',{p_token:token, p_cccd4: code||null}); if(r.error)throw r.error; return r.data; }
+  catch(e){ console.warn('sgFetch',e); return {error:'network'}; }
+}
+/* Cổng xác minh 4 số cuối CCCD -> trả về res hợp lệ (ok) hoặc res lỗi */
+function sgAskCccd(box, token, custName){
+  return new Promise((resolve)=>{
+    box.innerHTML=`
+      <div style="max-width:360px;margin:40px auto 0;text-align:center">
+        <div style="font-size:40px">🔒</div>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">Xác minh danh tính</div>
+        <div style="color:#94a3b8;font-size:14px;margin:8px 0 16px">Chào <b style="color:#e5e7eb">${esc(custName)}</b>, nhập <b>4 số cuối CCCD</b> của bạn để mở hợp đồng.</div>
+        <input id="cccd4" inputmode="numeric" maxlength="4" placeholder="••••" style="width:170px;text-align:center;letter-spacing:10px;font-size:24px;padding:12px;border-radius:12px;border:1px solid #334155;background:#0b1324;color:#fff">
+        <div id="cccdErr" style="color:#f87171;font-size:13px;min-height:18px;margin:10px 0"></div>
+        <button id="cccdOk" style="width:170px;padding:13px;background:#0d6efd;color:#fff;border:0;border-radius:12px;font-size:16px;font-weight:700">Xác nhận</button>
+      </div>`;
+    const inp=box.querySelector('#cccd4'), btn=box.querySelector('#cccdOk'), err=box.querySelector('#cccdErr');
+    inp.oninput=()=>{ inp.value=inp.value.replace(/\D/g,'').slice(0,4); err.textContent=''; };
+    setTimeout(()=>inp.focus(),100);
+    const submit=async()=>{
+      const code=inp.value;
+      if(code.length<4){ err.textContent='Nhập đủ 4 số'; return; }
+      btn.disabled=true; btn.textContent='Đang kiểm tra…';
+      const r=await sgFetch(token, code);
+      if(r && r.ok){ resolve(r); return; }
+      if(r && r.error==='wrong_cccd'){ err.textContent='4 số cuối CCCD chưa đúng. Thử lại.'; btn.disabled=false; btn.textContent='Xác nhận'; inp.value=''; inp.focus(); return; }
+      resolve(r); /* lỗi khác (hết hạn/đã ký/mạng) -> để phần ngoài hiển thị */
+    };
+    btn.onclick=submit;
+    inp.onkeydown=(e)=>{ if(e.key==='Enter')submit(); };
+  });
+}
 async function openCustomerSignPage(token){
   const app=document.querySelector('.app'); if(app)app.style.display='none';
   const wrap=document.createElement('div'); wrap.id='signPageWrap';
   wrap.style.cssText='position:fixed;inset:0;z-index:250;overflow:auto;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-  wrap.innerHTML='<div class="signInner" style="max-width:820px;margin:0 auto;padding:16px"><div id="signMsg" style="text-align:center;padding:60px 12px">Đang tải hợp đồng…</div></div>';
+  wrap.innerHTML='<div class="signInner" style="max-width:820px;margin:0 auto;padding:16px"><div id="signMsg" style="text-align:center;padding:60px 12px">Đang tải…</div></div>';
   document.body.appendChild(wrap);
   const box=wrap.querySelector('.signInner');
 
-  let res;
-  try{ const r=await SB.rpc('nt_get_sign_request',{p_token:token}); if(r.error)throw r.error; res=r.data; }
-  catch(e){ console.warn(e); box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">⚠️</div><b>Không kết nối được máy chủ.</b><br>Vui lòng thử lại.</div>'; return; }
-  if(!res||res.error){
-    const map={not_found:'Link không hợp lệ.',expired:'Link đã hết hạn (quá 24 giờ). Hãy xin quản lý tạo link mới.',used:'Hợp đồng này đã được ký.'};
+  let res=await sgFetch(token, null);
+  if(res && res.need_cccd){ res=await sgAskCccd(box, token, res.cust_name||''); }
+  if(!res || res.error || !res.ok){
+    const map={not_found:'Link không hợp lệ.',expired:'Link đã hết hạn (quá 24 giờ). Hãy xin quản lý tạo link mới.',used:'Hợp đồng này đã được ký.',network:'Không kết nối được máy chủ. Vui lòng thử lại.'};
     box.innerHTML='<div style="text-align:center;padding:60px 12px"><div style="font-size:44px">⚠️</div><b style="font-size:18px">'+(map[res&&res.error]||'Không mở được link.')+'</b></div>';
     return;
   }
