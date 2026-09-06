@@ -1539,7 +1539,10 @@ function contractForm(type,id){
   if(type==='TRO')ct.customers.forEach(c=>{c.dob=isoToDmy(c.dob);});
   window._ctDraft=ct;
   const rooms=h.rooms.filter(r=>r.type===type);
-  const roomOpts=`<option value="">— Chọn phòng —</option>`+rooms.map(r=>`<option value="${r.id}" ${ct.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
+  /* Phòng trọ chỉ được có 1 hợp đồng còn hiệu lực — khoá những phòng đã có (trừ chính HĐ đang sửa) */
+  const busy={};
+  if(type==='TRO')rooms.forEach(r=>{const a=activeTroContract(h,r.id);if(a&&a.id!==ct.id)busy[r.id]=true;});
+  const roomOpts=`<option value="">— Chọn phòng —</option>`+rooms.map(r=>`<option value="${r.id}" ${ct.roomId===r.id?'selected':''} ${busy[r.id]?'disabled':''}>${esc(r.name)}${busy[r.id]?' — đã có hợp đồng':''}</option>`).join('');
   let body;
   if(type==='KTX'){const c=ct.customer,g=ct.guardian;
     body=`<span class="badge ktx">Hợp đồng KTX</span>
@@ -1615,6 +1618,8 @@ function saveContract(type,editing){
   const roomId=$('#c_room').value;if(!roomId){toast('Chọn phòng','err');return;}
   const rs=dmyToIso($('#c_rs').value);if(rs===null){toast('Từ ngày không hợp lệ (DD/MM/YYYY)','err');return;}
   const re=dmyToIso($('#c_re').value);if(re===null){toast('Đến ngày không hợp lệ (DD/MM/YYYY)','err');return;}
+  if(type==='TRO'&&!isEnded(ct)){const other=activeTroContract(h,roomId);
+    if(other&&other.id!==ct.id){toast('Phòng này đã có hợp đồng còn hiệu lực — hãy kết thúc hợp đồng cũ trước','err');return;}}
   ct.roomId=roomId;ct.rentStart=rs;ct.rentEnd=re;
   if(type==='KTX'){
     const name=$('#c_name').value.trim();if(!name){toast('Nhập họ tên khách hàng','err');return;}
@@ -1662,11 +1667,16 @@ function shortNameMap(h){
 }
 /* Lấy chữ cuối của họ tên (vd "Trần Kiến Vĩ" -> "Vĩ") — dùng cho nhãn phòng trọ */
 function lastWord(name){const p=String(name||'').trim().split(/\s+/).filter(Boolean);return p.length?p[p.length-1]:'';}
+/* Hợp đồng trọ CÒN HIỆU LỰC của một phòng (bỏ hợp đồng đã kết thúc).
+   Nếu lỡ có nhiều hợp đồng còn hiệu lực trên cùng phòng thì lấy cái bắt đầu muộn nhất. */
+function activeTroContract(h,roomId){
+  const list=(h.contracts||[]).filter(c=>!isEnded(c)&&c.type==='TRO'&&c.roomId===roomId);
+  if(list.length<2)return list[0];
+  return list.slice().sort((a,b)=>String(a.rentStart||'').localeCompare(String(b.rentStart||'')))[list.length-1];
+}
 /* Tên (chữ cuối) của các khách đang ở trong một phòng trọ, theo thứ tự trong hợp đồng */
-function troRoomNames(h,roomId){const out=[];
-  (h.contracts||[]).forEach(ct=>{if(isEnded(ct)||ct.type!=='TRO'||ct.roomId!==roomId)return;
-    (ct.customers||[]).forEach(c=>{const n=lastWord(c&&c.name);if(n)out.push(n);});});
-  return out;}
+function troRoomNames(h,roomId){const ct=activeTroContract(h,roomId);if(!ct)return [];
+  return (ct.customers||[]).map(c=>lastWord(c&&c.name)).filter(Boolean);}
 function financeTargets(h){const out=[];const sm=shortNameMap(h);
   const roomName=(id)=>{const r=(h.rooms||[]).find(x=>x.id===id);return r?r.name:'';};
   const natCmp=(a,b)=>String(a||'').localeCompare(String(b||''),'vi',{numeric:true,sensitivity:'base'});
@@ -1847,7 +1857,7 @@ function renderAmountZone(){
               :`<div class="hint">Hợp đồng chưa khai tiền giường/tháng.</div>`}</div>`;
   }else if(key.indexOf('tro:')===0){
     const roomId=key.slice(4);
-    const ct=(h.contracts||[]).find(c=>c.type==='TRO'&&c.roomId===roomId);
+    const ct=activeTroContract(h,roomId);
     if(!ct){zone.innerHTML=`<div class="field"><label>Số tiền (₫) <span class="req">*</span></label>
         <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}"></div>
         <div class="hint" style="color:var(--danger)">Phòng này chưa có hợp đồng trọ để tính tự động — nhập tay số tiền.</div>`;return;}
@@ -1866,7 +1876,7 @@ function renderAmountZone(){
 function autoFillAmount(price){const el=$('#fAmount');if(el){el.value=maskThousand(price);}}
 function calcTro(roomId){
   const h=STORE.house(APP.houseId);
-  const ct=(h.contracts||[]).find(c=>c.type==='TRO'&&c.roomId===roomId);if(!ct)return;
+  const ct=activeTroContract(h,roomId);if(!ct)return;
   const persons=(ct.customers||[]).length;
   const vehicles=(ct.customers||[]).filter(c=>(c.bienso||'').trim()).length;
   const kwh=Number(unmask(($('#fKwh')&&$('#fKwh').value)||''))||0;
