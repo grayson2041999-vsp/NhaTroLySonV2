@@ -304,6 +304,10 @@ td{border-bottom:1px solid var(--line-soft)}
 .avatarbtn{background:none;border:none;padding:0;flex:0 0 auto;display:flex;border-radius:50%}
 .avatarbtn:active{transform:scale(.95)}
 
+/* Nhắc khi số tiền nhập khác kết quả tự động */
+.manualwarn{margin-top:10px;background:var(--warn-soft);border:1px solid #f0dcb8;border-radius:12px;
+  padding:11px 13px;font-size:13px;line-height:1.55;color:var(--warn-ink)}
+
 /* Dòng tiền: lợi nhuận từng tháng */
 .cfp{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
 .cfp.pos{color:var(--ok-ink)}.cfp.neg{color:var(--danger)}
@@ -2125,29 +2129,51 @@ function renderAmountZone(){
     zone.innerHTML=`
       <div class="hint" style="margin-bottom:8px">Số người: <b>${persons}</b> · Số xe: <b>${vehicles}</b> · Giá điện: <b>${money(ct.electricPerKwh)}/kWh</b></div>
       <div class="field"><label>Số điện tiêu thụ tháng này (kWh)</label>
-        <input id="fKwh" inputmode="numeric" value="${esc(b.kwh!=null?b.kwh:'')}" placeholder="VD: 50"></div>
+        <input id="fKwh" inputmode="numeric" value="${esc(b.kwh!=null?b.kwh:'')}" placeholder="VD: 50" oninput="troCheckManual()"></div>
       <button type="button" class="btn sec sm" onclick="calcTro('${roomId}')"><i data-lucide="calculator"></i> Tính tự động</button>
-      <div id="troResult" style="margin-top:10px">${(e.amount?troResultHTML(b,e.amount):'')}</div>
-      <input type="hidden" id="fAmount" value="${esc(unmask(e.amount))}">`;
+      <div id="troResult" style="margin-top:10px">${(b&&b.room!=null)?troResultHTML(b,(Number(b.room)||0)+(Number(b.water)||0)+(Number(b.service)||0)+(Number(b.vehicle)||0)+(Number(b.elec)||0)):''}</div>
+      <div class="field" style="margin-top:12px"><label>Số tiền thu (₫) <span class="req">*</span></label>
+        <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="Bấm Tính tự động, hoặc gõ số khác"
+               oninput="troCheckManual()"></div>
+      <div id="troManual"></div>`;
+    try{troCheckManual();}catch(err){}
   }
 }
 function autoFillAmount(price){const el=$('#fAmount');if(el){el.value=maskThousand(price);}}
-function calcTro(roomId){
-  const h=STORE.house(APP.houseId);
-  const ct=activeTroContract(h,roomId);if(!ct)return;
+/* Tổng tiền theo đúng hợp đồng — dùng cho nút Tính tự động và để đối chiếu khi sửa tay */
+function troAutoTotal(h,roomId,kwhRaw){
+  const ct=activeTroContract(h,roomId); if(!ct)return null;
   const persons=(ct.customers||[]).length;
   const vehicles=(ct.customers||[]).filter(c=>(c.bienso||'').trim()).length;
-  const kwh=Number(unmask(($('#fKwh')&&$('#fKwh').value)||''))||0;
+  const kwh=Number(unmask(kwhRaw||''))||0;
   const room=Number(ct.pricePerRoom)||0;
   const water=(Number(ct.waterPerPerson)||0)*persons;
   const service=(Number(ct.servicePerPerson)||0)*persons;
   const vehicle=(Number(ct.vehiclePerVehicle)||0)*vehicles;
   const elec=(Number(ct.electricPerKwh)||0)*kwh;
-  const total=room+water+service+vehicle+elec;
-  const b={kwh,persons,vehicles,room,water,service,vehicle,elec};
-  window._finBreakdown=b;
-  const fa=$('#fAmount');if(fa)fa.value=String(total);
-  const tr=$('#troResult');if(tr)tr.innerHTML=troResultHTML(b,total);
+  return {total:room+water+service+vehicle+elec,b:{kwh,persons,vehicles,room,water,service,vehicle,elec}};
+}
+function calcTro(roomId){
+  const h=STORE.house(APP.houseId);
+  const a=troAutoTotal(h,roomId,($('#fKwh')&&$('#fKwh').value)||''); if(!a)return;
+  window._finBreakdown=a.b;
+  const fa=$('#fAmount');if(fa)fa.value=maskThousand(a.total);
+  const tr=$('#troResult');if(tr)tr.innerHTML=troResultHTML(a.b,a.total);
+  troCheckManual();
+}
+/* Nhắc khi số tiền nhập khác kết quả tự động */
+function troCheckManual(){
+  const zone=$('#troManual'); if(!zone)return;
+  const key=($('#fTarget')&&$('#fTarget').value)||'';
+  if(key.indexOf('tro:')!==0){zone.innerHTML='';return;}
+  const a=troAutoTotal(STORE.house(APP.houseId),key.slice(4),($('#fKwh')&&$('#fKwh').value)||'');
+  const cur=Number(unmask(($('#fAmount')&&$('#fAmount').value)||''))||0;
+  if(!a||!a.total||!cur||cur===a.total){zone.innerHTML='';return;}
+  const d=cur-a.total;
+  zone.innerHTML=`<div class="manualwarn">
+    <div><b>Số này khác kết quả tự động</b></div>
+    <div>Theo hợp đồng: ${money(a.total)} · chênh ${d>0?'+':'−'}${money(Math.abs(d))}</div>
+    <div style="margin-top:4px">Hãy ghi lý do vào ô <b>Ghi chú</b> bên dưới.</div></div>`;
 }
 function troResultHTML(b,total){
   if(!b||b.room==null)return `<div class="card"><b>Tổng: ${money(total)}</b></div>`;
@@ -2157,7 +2183,7 @@ function troResultHTML(b,total){
     <div>Tiền nước: ${b.persons} người → <b>${money(b.water)}</b></div>
     <div>Tiền dịch vụ: ${b.persons} người → <b>${money(b.service)}</b></div>
     <div>Tiền xe: ${b.vehicles} xe → <b>${money(b.vehicle)}</b></div>
-    <div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;font-weight:800">Tổng: ${money(total)}</div></div>`;
+    <div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;font-weight:800">Tổng theo hợp đồng: ${money(total)}</div></div>`;
 }
 function troNoteText(b){if(!b)return '';return `Phòng ${money(b.room)} + Điện ${b.kwh||0}kWh ${money(b.elec)} + Nước ${money(b.water)} + DV ${money(b.service)} + Xe ${money(b.vehicle)}`;}
 function saveFinance(kind,id,editing){
@@ -2182,8 +2208,16 @@ function saveFinance(kind,id,editing){
       entry={id,kind,month:am,targetType:'KHAC',targetKey:'other:'+id,label:otherLabel,amount:amount,note:$('#fNote').value.trim(),userId:getCurUser(),userName:curUserName(),ts:Date.now()};
     }else{
       const t=financeTargets(h).find(x=>x.key===key)||{};
-      const bd=window._finBreakdown||(window._finEdit&&window._finEdit.breakdown)||null;
+      let bd=window._finBreakdown||(window._finEdit&&window._finEdit.breakdown)||null;
       const note=$('#fNote').value.trim();
+      /* Phòng trọ: số tiền khác kết quả tự động thì phải ghi lý do */
+      if(key.indexOf('tro:')===0){
+        const a=troAutoTotal(h,key.slice(4),($('#fKwh')&&$('#fKwh').value)||'');
+        if(a&&a.total&&Number(amount)!==a.total){
+          if(!note){toast('Số tiền khác kết quả tự động — hãy ghi lý do vào ô Ghi chú','err');return;}
+          bd=Object.assign({},bd||a.b,{manual:true,auto:a.total});
+        }
+      }
       entry={id,kind,month:am,targetType:t.type||'',targetKey:key,label:t.label||'',amount:amount,note:note,userId:getCurUser(),userName:curUserName(),ts:Date.now()};
       if(bd)entry.breakdown=bd;
     }
