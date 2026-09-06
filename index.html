@@ -22,6 +22,9 @@
   --border:#e5e7eb; --danger:#dc2626; --danger-light:#fee2e2;
   --warn:#d97706; --ok:#16a34a; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
   --radius:14px;
+  /* Bảng màu tối giản dùng chung cho toàn app */
+  --ink-3:#98a1af; --line-soft:#f0f2f5; --surface-2:#f7f8fa;
+  --ok-soft:#e6f5ee; --ok-ink:#12855b; --warn-soft:#fdf3e4; --warn-ink:#b45309;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -232,6 +235,50 @@ tr:last-child td{border-bottom:none}
 .imgviewer.show{display:flex}
 .imgviewer img{max-width:96%;max-height:92%;border-radius:8px}
 
+/* ============ TỐI GIẢN — áp cho mọi màn hình ============ */
+.topbar.plain .sub{color:var(--muted);opacity:1}
+.card{box-shadow:none;border-radius:16px}
+.btn{border-radius:12px}
+.btn.sm{border-radius:9px}
+.sectitle{font-size:12px;letter-spacing:.06em;color:var(--ink-3);margin:18px 2px 10px}
+/* .hint dùng ở nhiều nơi ngoài .field — trước đây không có kiểu nên hiện to bằng chữ thường */
+.hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.empty .ic{font-size:34px;opacity:.5}
+
+/* Bảng: bỏ viền nặng, chỉ còn đường ngăn mảnh */
+.tablewrap{border-radius:16px}
+th{background:var(--surface-2);color:var(--ink-3);font-weight:700;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+td{border-bottom:1px solid var(--line-soft)}
+.c-money{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.fin-table th.c-money{text-align:right}
+.roomhead td{background:var(--surface-2);color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.finrow.open{background:var(--surface-2)}
+.cf-total td{background:var(--surface-2);font-weight:700}
+.cf-table td{font-variant-numeric:tabular-nums}
+
+/* Thanh điều hướng dưới đáy */
+.bnav-item{font-size:11px;padding:8px 2px 6px}
+.bnav-item svg.lucide{width:22px;height:22px;stroke-width:1.9}
+.bnav-item:active{background:transparent;opacity:.6}
+
+/* Thẻ số liệu — dùng ở trang chủ và đầu các tab */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:15px 16px 14px;margin-bottom:14px}
+.stat .row1{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.stat .lbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.stat .row1 .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.stat .big{font-size:26px;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .big.pos{color:var(--ok-ink)}.stat .big.neg{color:var(--danger)}
+.stat .big .u{font-size:15px;font-weight:600;color:var(--muted);margin-left:2px}
+.stat .split{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.stat .split .s{flex:1;min-width:0}
+.stat .split .k{font-size:12px;color:var(--muted);margin-bottom:2px}
+.stat .split .v{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .split .sep{width:1px;background:var(--line-soft);flex:0 0 auto}
+.stat .prog{margin-top:12px}
+.stat .prog .t{display:flex;font-size:12px;color:var(--muted);margin-bottom:6px}
+.stat .prog .t b{margin-left:auto;color:var(--text);font-weight:650;font-variant-numeric:tabular-nums}
+.stat .names{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+
 /* ============ TRANG CHỦ (màn chọn nhà) — giao diện tối giản ============ */
 .topbar.plain{background:#fff;color:var(--text);box-shadow:none;border-bottom:1px solid var(--border);padding:10px 14px;gap:8px}
 .topbar.plain .ttl{font-size:16px;font-weight:650;letter-spacing:-.01em}
@@ -271,7 +318,7 @@ tr:last-child td{border-bottom:none}
 .hpill{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:#fdf3e4;color:#b45309}
 .hpill.done{background:#e6f5ee;color:#12855b}
 .hpill.none{background:#f0f2f5;color:var(--muted)}
-.hbar{height:4px;border-radius:2px;background:#f0f2f5;margin-top:10px;overflow:hidden}
+.hbar{height:4px;border-radius:2px;background:var(--line-soft);margin-top:10px;overflow:hidden}
 .hbar>span{display:block;height:100%;border-radius:2px;background:var(--primary)}
 .hbar.done>span{background:#12855b}
 .hfoot{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -981,9 +1028,9 @@ function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
       <div class="ttl">Nhà trọ Lý Sơn</div>${bell}
       <button class="iconbtn" aria-label="Quản lý hệ thống" onclick="goSystem()"><i data-lucide="settings"></i></button>
       <button class="avatarbtn" aria-label="Tài khoản" onclick="openSync()">${av}</button>`;}
-  else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
+  else if(APP.screen==='system'){tb.classList.add('plain');tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
     <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${bell}`;}
-  else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
+  else if(APP.screen==='house'){const h=STORE.house(APP.houseId);tb.classList.add('plain');
     tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
       <div class="ttl">${esc(h?h.name:'')}<div class="sub">${esc(h?h.address:'')}</div></div>${bell}`;}
 }
@@ -1000,11 +1047,14 @@ const numVi=(n)=>(Number(n)||0).toLocaleString('vi-VN');
 /* Số liệu tóm tắt của một nhà trong tháng: đã thu bao nhiêu tiền, bao nhiêu đối tượng đã đóng */
 function houseStats(h,month){
   const targets=financeTargets(h).filter(t=>t.billable!==false);
-  const thu=(h.finance||[]).filter(e=>e.kind==='thu'&&e.month===month);
+  const fin=(h.finance||[]).filter(e=>e.month===month);
+  const thu=fin.filter(e=>e.kind==='thu');
   const paidKeys=new Set(thu.map(e=>e.targetKey));
+  const sum=(a)=>a.reduce((s,e)=>s+(Number(e.amount)||0),0);
   return {total:targets.length,
           paid:targets.filter(t=>paidKeys.has(t.key)).length,
-          revenue:thu.reduce((s,e)=>s+(Number(e.amount)||0),0)};
+          revenue:sum(thu),
+          cost:sum(fin.filter(e=>e.kind==='chi'))};
 }
 function roomSummary(h){
   const ktx=(h.rooms||[]).filter(r=>r.type==='KTX').length;
@@ -1013,21 +1063,31 @@ function roomSummary(h){
 }
 function renderEntry(c){
   const houses=STORE.houses();const am=STORE.activeMonth();
-  const st={};let sRev=0,sPaid=0,sTot=0;
-  houses.forEach(h=>{const x=houseStats(h,am);st[h.id]=x;sRev+=x.revenue;sPaid+=x.paid;sTot+=x.total;});
-  const totals=am
-    ? `<div class="totals">
-         <div class="t"><div class="k">Đã thu tháng này</div><div class="v">${numVi(sRev)}<span class="u">₫</span></div></div>
-         <div class="sep"></div>
-         <div class="t"><div class="k">Tiến độ thu</div><div class="v">${sPaid}<span class="u">/${sTot} đã đóng</span></div></div>
+  const st={};let sRev=0,sCost=0,sPaid=0,sTot=0;
+  houses.forEach(h=>{const x=houseStats(h,am);st[h.id]=x;sRev+=x.revenue;sCost+=x.cost;sPaid+=x.paid;sTot+=x.total;});
+  const profit=sRev-sCost;
+  const pctAll=sTot?Math.round(sPaid/sTot*100):0;
+  const board=am
+    ? `<div class="stat">
+         <div class="row1"><span class="lbl">Lợi nhuận tháng ${esc(isoToMy(am))}</span></div>
+         <div class="big ${profit>=0?'pos':'neg'}">${numVi(profit)}<span class="u">₫</span></div>
+         <div class="split">
+           <div class="s"><div class="k">Doanh thu</div><div class="v">${numVi(sRev)} ₫</div></div>
+           <div class="sep"></div>
+           <div class="s"><div class="k">Chi phí</div><div class="v">${numVi(sCost)} ₫</div></div>
+         </div>
+         ${sTot?`<div class="prog"><div class="t">Tiến độ thu<b>${sPaid}/${sTot}</b></div>
+            <div class="hbar${sPaid>=sTot?' done':''}" style="margin-top:0"><span style="width:${pctAll}%"></span></div></div>`:''}
        </div>`
-    : `<div class="totals"><div class="hint2">Chưa chọn tháng thao tác — chọn tháng để xem doanh thu và tiến độ thu.</div></div>`;
+    : `<div class="stat"><div class="row1"><span class="lbl">Chưa chọn tháng</span></div>
+         <div class="muted" style="font-size:13.5px">Chọn tháng thao tác để xem doanh thu, chi phí và tiến độ thu.</div></div>`;
   c.innerHTML=`<div class="homehead">
       <div class="monthbar"><span class="lbl">Tháng thao tác</span>
         <span class="val">${am?esc(isoToMy(am)):'Chưa chọn'}</span>
         <button class="chg" onclick="goSystem()">${am?'Đổi tháng':'Chọn tháng'}</button></div>
-      ${totals}
     </div>
+    <div style="height:14px"></div>
+    ${board}
     <div class="sectitle">Nhà đang quản lý</div>
     <div id="houseList" class="hlist"></div>`;
   const list=$('#houseList',c);
@@ -1050,7 +1110,7 @@ function renderEntry(c){
         </div>
         <div class="mid"><span class="money">${numVi(x.revenue)}<span class="u">₫</span></span>${pill}</div>
         <div class="hbar${done?' done':''}"><span style="width:${pct}%"></span></div>
-        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}</span>
+        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}${x.cost?' · chi '+numVi(x.cost)+' ₫':''}</span>
           <span class="rooms">${esc(roomSummary(h))}</span></div>
       </button>`;}).join('');
   }
@@ -1845,16 +1905,18 @@ function renderFinanceTab(c,h,kind){
   const fp=APP.finFilter||'';
   const list=fp?allList.filter(e=>(e.userName||'')===fp):allList;
   const total=list.reduce((s,e)=>s+(Number(e.amount)||0),0);
-  // Việc 1: tóm tắt "chưa đóng" (chỉ ở tab Doanh thu)
-  let chuaDong='';
+  // Tiến độ thu (chỉ ở tab Doanh thu): gộp thẳng vào thẻ số liệu đầu trang
+  let prog='';
   if(kind==='thu'){
     const targets=financeTargets(h).filter(t=>t.billable!==false);
-    const used=new Set(list.map(e=>e.targetKey));
+    const used=new Set(allList.map(e=>e.targetKey));
     const remain=targets.filter(t=>!used.has(t.key));
     if(targets.length){
-      chuaDong=`<div class="card" style="margin-bottom:12px">
-        <div style="font-weight:700;margin-bottom:4px">Chưa đóng: ${remain.length}/${targets.length}</div>
-        <div class="muted" style="font-size:13px">${remain.length?remain.map(t=>esc(t.short)).join(' · '):'Đã thu đủ tất cả đối tượng trong tháng. ✓'}</div></div>`;
+      const paid=targets.length-remain.length;
+      const pct=Math.round(paid/targets.length*100);
+      prog=`<div class="prog"><div class="t">Tiến độ thu<b>${paid}/${targets.length}</b></div>
+        <div class="hbar${remain.length?'':' done'}" style="margin-top:0"><span style="width:${pct}%"></span></div></div>
+        <div class="names">${remain.length?('Chưa đóng: '+remain.map(t=>esc(t.short)).join(' · ')):'Đã thu đủ tất cả đối tượng trong tháng.'}</div>`;
     }
   }
   let rows='';
@@ -1874,16 +1936,19 @@ function renderFinanceTab(c,h,kind){
             <button class="btn sec sm" onclick="event.stopPropagation();financeForm('${kind}','${e.id}')"><i data-lucide="pencil"></i> Sửa</button>
             <button class="btn danger sm" onclick="event.stopPropagation();deleteFinance('${e.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:''}`;}).join('')}</tbody></table></div>`;
   } else { rows=`<div class="empty"><div class="ic">${kind==='thu'?'💵':'🧾'}</div>${fp?`Không có khoản ${title.toLowerCase()} nào do <b>${esc(fp)}</b> nhập.`:`Chưa có khoản ${title.toLowerCase()} nào trong tháng này.`}</div>`; }
+  const lockCtl=locked
+    ? `<span class="badge danger">Đã khoá</span>${isAdmin()?` <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`:''}`
+    : `<button class="btn sec sm" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i> Khoá tháng</button>`;
   c.innerHTML=`
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-      <div><div style="font-weight:700">${title} · tháng ${esc(isoToMy(am))}</div>
-        <div class="muted" style="font-size:13px">Tổng: <b>${money(total)}</b> · ${list.length} khoản</div>
-        ${fp?`<div style="margin-top:6px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">✕ Bỏ lọc</button></div>`:''}</div>
-      <div>${locked?`<span class="badge danger">Đã khoá</span>${isAdmin()?` <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`:''}`
-                    :`<button class="btn sm" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i> Khoá tháng</button>`}</div>
+    <div class="stat">
+      <div class="row1"><span class="lbl">${title} · tháng ${esc(isoToMy(am))}</span>
+        <span class="right">${lockCtl}</span></div>
+      <div class="big">${numVi(total)}<span class="u">₫</span></div>
+      <div class="muted" style="font-size:13px;margin-top:3px">${list.length} khoản${fp?'':''}</div>
+      ${fp?`<div style="margin-top:8px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">✕ Bỏ lọc</button></div>`:''}
+      ${prog}
     </div>
-    ${chuaDong}
-    ${locked?'':`<button class="btn block" style="margin-bottom:12px" onclick="financeForm('${kind}')"><i data-lucide="plus"></i> Thêm khoản ${title.toLowerCase()}</button>`}
+    ${locked?'':`<button class="btn block" style="margin-bottom:14px" onclick="financeForm('${kind}')"><i data-lucide="plus"></i> Thêm khoản ${title.toLowerCase()}</button>`}
     ${rows}`;
 }
 function unlockMonthThenRender(id){unlockMonth(id);}
@@ -2296,17 +2361,16 @@ function renderTabQuyetToan(c,h){
         <select onchange="setQtMonth(this.value)">${monthOpts}</select></div>
       <div style="padding-bottom:6px">${lockBadge}</div>
     </div>
-    ${locked?'':`<div class="hint" style="color:var(--danger);margin-bottom:10px">Lưu ý: tháng này CHƯA khoá — số liệu có thể còn thay đổi.</div>`}
-    <div class="card" style="margin-bottom:12px">
-      <div class="grid2">
-        <div><div class="muted" style="font-size:13px">Doanh thu</div><div style="font-weight:800;font-size:18px">${money(revenue)}</div></div>
-        <div><div class="muted" style="font-size:13px">Chi phí</div><div style="font-weight:800;font-size:18px">${money(cost)}</div></div>
+    ${locked?'':`<div class="names" style="margin:-4px 2px 12px;color:var(--warn-ink)">Tháng này chưa khoá — số liệu còn có thể thay đổi.</div>`}
+    <div class="stat">
+      <div class="row1"><span class="lbl">Lợi nhuận tháng ${esc(isoToMy(month))}</span></div>
+      <div class="big ${profit>=0?'pos':'neg'}">${numVi(profit)}<span class="u">₫</span></div>
+      <div class="split">
+        <div class="s"><div class="k">Doanh thu</div><div class="v">${numVi(revenue)} ₫</div></div>
+        <div class="sep"></div>
+        <div class="s"><div class="k">Chi phí</div><div class="v">${numVi(cost)} ₫</div></div>
       </div>
-      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-        <span class="muted" style="font-size:13px">Lợi nhuận (Doanh thu − Chi phí)</span>
-        <div style="font-weight:800;font-size:22px;color:${profit>=0?'#16a34a':'var(--danger)'}">${money(profit)}</div>
-        <div class="muted" style="font-size:13px;margin-top:2px">Chia đều ${N} người · mỗi người: <b>${money(Math.round(target))}</b></div>
-      </div>
+      <div class="names">Chia đều ${N} người · mỗi người <b>${money(Math.round(target))}</b></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div style="font-weight:700;margin-bottom:8px">Chi tiết theo người</div>
