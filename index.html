@@ -231,6 +231,56 @@ tr:last-child td{border-bottom:none}
 .imgviewer{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
 .imgviewer.show{display:flex}
 .imgviewer img{max-width:96%;max-height:92%;border-radius:8px}
+
+/* ============ TRANG CHỦ (màn chọn nhà) — giao diện tối giản ============ */
+.topbar.plain{background:#fff;color:var(--text);box-shadow:none;border-bottom:1px solid var(--border);padding:10px 14px;gap:8px}
+.topbar.plain .ttl{font-size:16px;font-weight:650;letter-spacing:-.01em}
+.topbar.plain .iconbtn{background:transparent;color:var(--muted);width:34px;height:34px}
+.topbar.plain .iconbtn:active{background:#f0f2f5;color:var(--text)}
+.topbar.plain .topbadge{border-color:#fff}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.mark svg.lucide{width:17px;height:17px}
+.avatarbtn{background:none;border:none;padding:0;flex:0 0 auto;display:flex;border-radius:50%}
+.avatarbtn:active{transform:scale(.95)}
+
+.homehead{margin:-16px -16px 0}
+.monthbar{display:flex;align-items:baseline;gap:8px;padding:13px 16px 12px;background:var(--card);border-bottom:1px solid var(--border)}
+.monthbar .lbl{font-size:12px;color:#98a1af;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.monthbar .val{font-size:15px;font-weight:650}
+.monthbar .chg{margin-left:auto;background:none;border:none;padding:0;font-size:13px;font-weight:600;color:var(--primary)}
+.totals{display:flex;gap:16px;padding:18px 16px 14px}
+.totals .t{flex:1;min-width:0}
+.totals .k{font-size:12px;color:var(--muted);margin-bottom:3px}
+.totals .v{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.totals .v .u{font-size:14px;font-weight:600;color:var(--muted);margin-left:1px}
+.totals .sep{width:1px;background:var(--border);flex:0 0 auto}
+.totals .hint2{padding:16px;font-size:13px;color:var(--muted)}
+
+.hlist{display:flex;flex-direction:column;gap:10px}
+.hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
+.hitem:active{transform:scale(.995)}
+.hitem .top{display:flex;align-items:flex-start;gap:10px}
+.hitem .id{flex:1;min-width:0}
+.hitem .nm{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.hitem .ad{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hitem .cv{color:#98a1af;flex:0 0 auto;margin-top:3px}
+.hitem .cv svg.lucide{width:18px;height:18px}
+.hitem .mid{display:flex;align-items:baseline;gap:8px;margin-top:12px}
+.hitem .money{font-size:19px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hitem .money .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
+.hpill{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:#fdf3e4;color:#b45309}
+.hpill.done{background:#e6f5ee;color:#12855b}
+.hpill.none{background:#f0f2f5;color:var(--muted)}
+.hbar{height:4px;border-radius:2px;background:#f0f2f5;margin-top:10px;overflow:hidden}
+.hbar>span{display:block;height:100%;border-radius:2px;background:var(--primary)}
+.hbar.done>span{background:#12855b}
+.hfoot{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hfoot .rooms{margin-left:auto;color:#98a1af}
+.homefoot{padding:16px 2px 4px}
+.linkrow{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;padding:10px 2px;font:inherit;font-size:14px;font-weight:600;color:var(--muted)}
+.linkrow:active{color:var(--text)}
+.linkrow svg.lucide{width:17px;height:17px;color:#98a1af}
+.linkrow .arrow{margin-left:auto}
 </style>
 </head>
 <body>
@@ -929,7 +979,13 @@ function bellBtn(){
   return `<button class="iconbtn" aria-label="Thông báo" onclick="ntOpenNotifications()"><i data-lucide="bell"></i><span class="topbadge" id="ntBellCount"${n>0?'':' style="display:none"'}>${n>99?'99+':n}</span></button>`;
 }
 function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
-  if(APP.screen==='entry'){tb.innerHTML=`<div class="ttl">Nhà trọ Lý Sơn</div>${bell}`;}
+  tb.classList.toggle('plain',APP.screen==='entry');
+  if(APP.screen==='entry'){
+    const av=ntAvatarHtml(NT.user?NT.user.name:'?',NT.user?NT.user.avatar:null,32);
+    tb.innerHTML=`<div class="mark"><i data-lucide="house"></i></div>
+      <div class="ttl">Nhà trọ Lý Sơn</div>${bell}
+      <button class="iconbtn" aria-label="Quản lý hệ thống" onclick="goSystem()"><i data-lucide="settings"></i></button>
+      <button class="avatarbtn" aria-label="Tài khoản" onclick="openSync()">${av}</button>`;}
   else if(APP.screen==='system'){tb.innerHTML=`<button class="iconbtn" aria-label="Quay lại" onclick="goEntry()"><i data-lucide="chevron-left"></i></button>
     <div class="ttl">Quản lý hệ thống<div class="sub">Thêm / chỉnh / xoá nhà</div></div>${bell}`;}
   else if(APP.screen==='house'){const h=STORE.house(APP.houseId);
@@ -944,19 +1000,69 @@ function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const 
   nav.innerHTML=items.map(([k,l,ic])=>`<button class="bnav-item${APP.tab===k?' active':''}" onclick="setTab('${k}')"><i data-lucide="${ic}"></i><span>${l}</span></button>`).join('');
 }
 
-/* ---------- ENTRY ---------- */
-function renderEntry(c){const houses=STORE.houses();
-  c.innerHTML=`<div class="hero"><div class="logo"><i data-lucide="house"></i></div><h1>Nhà trọ Lý Sơn</h1><p>Quản lý nhà trọ &amp; ký túc xá</p></div>
-    <button class="btn lg ghost block" style="margin-bottom:18px" onclick="goSystem()"><i data-lucide="settings"></i> Quản lý hệ thống</button>
-    <button class="btn ghost block" style="margin-bottom:18px" onclick="openSync()"><i data-lucide="user"></i> Tài khoản: ${esc(NT.user?NT.user.name:'—')}${NT.user&&NT.user.role==='admin'?' (admin)':''}</button>
-    <div class="sectitle">Chọn nhà để quản lý</div><div id="houseList"></div>`;
+/* ---------- ENTRY (trang chủ) ---------- */
+const numVi=(n)=>(Number(n)||0).toLocaleString('vi-VN');
+/* Số liệu tóm tắt của một nhà trong tháng: đã thu bao nhiêu tiền, bao nhiêu đối tượng đã đóng */
+function houseStats(h,month){
+  const targets=financeTargets(h).filter(t=>t.billable!==false);
+  const thu=(h.finance||[]).filter(e=>e.kind==='thu'&&e.month===month);
+  const paidKeys=new Set(thu.map(e=>e.targetKey));
+  return {total:targets.length,
+          paid:targets.filter(t=>paidKeys.has(t.key)).length,
+          revenue:thu.reduce((s,e)=>s+(Number(e.amount)||0),0)};
+}
+function roomSummary(h){
+  const ktx=(h.rooms||[]).filter(r=>r.type==='KTX').length;
+  const tro=(h.rooms||[]).filter(r=>r.type==='TRO').length;
+  return [tro?tro+' phòng trọ':'',ktx?ktx+' phòng KTX':''].filter(Boolean).join(' · ')||'chưa có phòng';
+}
+function renderEntry(c){
+  const houses=STORE.houses();const am=STORE.activeMonth();
+  const st={};let sRev=0,sPaid=0,sTot=0;
+  houses.forEach(h=>{const x=houseStats(h,am);st[h.id]=x;sRev+=x.revenue;sPaid+=x.paid;sTot+=x.total;});
+  const totals=am
+    ? `<div class="totals">
+         <div class="t"><div class="k">Đã thu tháng này</div><div class="v">${numVi(sRev)}<span class="u">₫</span></div></div>
+         <div class="sep"></div>
+         <div class="t"><div class="k">Tiến độ thu</div><div class="v">${sPaid}<span class="u">/${sTot} đã đóng</span></div></div>
+       </div>`
+    : `<div class="totals"><div class="hint2">Chưa chọn tháng thao tác — chọn tháng để xem doanh thu và tiến độ thu.</div></div>`;
+  c.innerHTML=`<div class="homehead">
+      <div class="monthbar"><span class="lbl">Tháng thao tác</span>
+        <span class="val">${am?esc(isoToMy(am)):'Chưa chọn'}</span>
+        <button class="chg" onclick="goSystem()">${am?'Đổi tháng':'Chọn tháng'}</button></div>
+      ${totals}
+    </div>
+    <div class="sectitle">Nhà đang quản lý</div>
+    <div id="houseList" class="hlist"></div>
+    <div class="homefoot" id="homeFoot"></div>`;
   const list=$('#houseList',c);
-  if(!houses.length){list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.<br>Vào <b>Quản lý hệ thống</b> để thêm nhà.</div>`;return;}
-  list.innerHTML=houses.map(h=>`<div class="card hcard" onclick="enterHouse('${h.id}')">
-    <div class="av"><i data-lucide="house"></i></div><div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div>
-      <div style="margin-top:4px"><span class="badge ktx">${h.rooms.filter(r=>r.type==='KTX').length} KTX</span>
-        <span class="badge tro">${h.rooms.filter(r=>r.type==='TRO').length} phòng trọ</span></div></div>
-    <div class="chev"><i data-lucide="chevron-right"></i></div></div>`).join('');
+  if(!houses.length){
+    list.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.<br>
+      <button class="btn sm" style="margin-top:10px" onclick="goSystem()"><i data-lucide="plus"></i> Thêm nhà đầu tiên</button></div>`;
+  }else{
+    list.innerHTML=houses.map(h=>{
+      const x=st[h.id];
+      const pct=x.total?Math.round(x.paid/x.total*100):0;
+      const done=x.total>0&&x.paid>=x.total;
+      const pill=!am?'<span class="hpill none">Chưa chọn tháng</span>'
+        :(!x.total?'<span class="hpill none">Chưa có khách</span>'
+        :(done?'<span class="hpill done">Đã thu đủ</span>'
+              :`<span class="hpill">Còn ${x.total-x.paid} chưa đóng</span>`));
+      return `<button class="hitem" type="button" onclick="enterHouse('${h.id}')">
+        <div class="top">
+          <div class="id"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div>
+          <span class="cv"><i data-lucide="chevron-right"></i></span>
+        </div>
+        <div class="mid"><span class="money">${numVi(x.revenue)}<span class="u">₫</span></span>${pill}</div>
+        <div class="hbar${done?' done':''}"><span style="width:${pct}%"></span></div>
+        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}</span>
+          <span class="rooms">${esc(roomSummary(h))}</span></div>
+      </button>`;}).join('');
+  }
+  $('#homeFoot',c).innerHTML=`<button class="linkrow" onclick="openBackup()">
+      <i data-lucide="download"></i> Sao lưu dữ liệu ra file
+      <span class="arrow"><i data-lucide="chevron-right"></i></span></button>`;
 }
 
 /* ---------- SYSTEM ---------- */
@@ -1728,10 +1834,12 @@ function financeTargets(h){const out=[];const sm=shortNameMap(h);
     .map(ct=>({ct,room:roomName(ct.roomId),name:ct.customer.name.trim()}));
   ktx.sort((a,b)=>natCmp(a.room,b.room)||natCmp(a.name,b.name));
   ktx.forEach(({ct,room,name})=>{const pre=room?'['+room+'] ':'';
-    out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+name,short:pre+(sm[name]||name)});});
+    out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+name,short:pre+(sm[name]||name),billable:true});});
   /* Phòng trọ: sắp theo số phòng */
   (h.rooms||[]).filter(r=>r.type==='TRO').slice().sort((a,b)=>natCmp(a.name,b.name))
-    .forEach(r=>{const nm=troRoomNames(h,r.id);const lbl='Phòng '+r.name+' ('+(nm.length?nm.join(', '):'trống')+')';out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl});});
+    .forEach(r=>{const nm=troRoomNames(h,r.id);const lbl='Phòng '+r.name+' ('+(nm.length?nm.join(', '):'trống')+')';
+      /* billable=false: phòng chưa có hợp đồng -> không tính vào "chưa đóng", nhưng vẫn chọn được nếu cần */
+      out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl,billable:!!activeTroContract(h,r.id)});});
   return out;
 }
 
@@ -1749,7 +1857,7 @@ function renderFinanceTab(c,h,kind){
   // Việc 1: tóm tắt "chưa đóng" (chỉ ở tab Doanh thu)
   let chuaDong='';
   if(kind==='thu'){
-    const targets=financeTargets(h);
+    const targets=financeTargets(h).filter(t=>t.billable!==false);
     const used=new Set(list.map(e=>e.targetKey));
     const remain=targets.filter(t=>!used.has(t.key));
     if(targets.length){
