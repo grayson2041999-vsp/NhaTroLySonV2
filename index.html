@@ -18,12 +18,12 @@
 :root{
   --primary:#0d6efd; --primary-dark:#0a58ca; --primary-light:#e7f1ff;
   --ktx:#0ea5e9; --tro:#16a34a;
-  --bg:#edf0f5; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+  --bg:#edf0f5; --card:#ffffff; --text:#1f2937; --muted:#586173;
   --border:#d8dde5; --danger:#dc2626; --danger-light:#fee2e2;
   --warn:#d97706; --ok:#16a34a; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
   --radius:14px;
   /* Bảng màu tối giản dùng chung cho toàn app */
-  --ink-3:#98a1af; --line-soft:#f0f2f5; --surface-2:#f7f8fa;
+  --ink-3:#78849a; --line-soft:#f0f2f5; --surface-2:#f7f8fa;
   --ok-soft:#e6f5ee; --ok-ink:#12855b; --warn-soft:#fdf3e4; --warn-ink:#b45309;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -60,8 +60,8 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .bnav-item svg.lucide{width:26px;height:26px;stroke-width:2}
 .bnav-item.active{color:var(--primary)}
 .bnav-item:active{background:var(--primary-light)}
-.bnav-on .content{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
-.bnav-on .toast{bottom:calc(94px + env(safe-area-inset-bottom))}
+.bnav-on .content{padding-bottom:calc(152px + env(safe-area-inset-bottom))}
+.bnav-on .toast{bottom:calc(156px + env(safe-area-inset-bottom))}
 @keyframes spin{to{transform:rotate(360deg)}}
 .content{flex:1;padding:16px;padding-bottom:40px}
 
@@ -75,13 +75,13 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .btn.sec{background:#eef0f4;color:var(--text)}
 .btn.danger{background:var(--danger)}
 .btn.ok{background:var(--ok)}
-.btn.sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.btn.sm{padding:10px 14px;font-size:13.5px;border-radius:10px;min-height:40px}
 .btn:disabled{opacity:.5}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}}
 .muted{color:var(--muted)}.center{text-align:center}
-.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:600}
 .badge.ktx{background:#e0f2fe;color:#0369a1}.badge.tro{background:#dcfce7;color:#15803d}
 .badge.warn{background:#fef3c7;color:#92400e}.badge.ok{background:#dcfce7;color:#15803d}.badge.danger{background:var(--danger-light);color:#991b1b}
 .empty{text-align:center;padding:42px 16px;color:var(--muted)}.empty .ic{font-size:46px;margin-bottom:8px}
@@ -122,7 +122,7 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .tab-sep{flex:0 0 auto;width:1px;align-self:center;height:22px;background:var(--border);margin:0 3px}
 
 .field{margin-bottom:13px}
-.field label{display:block;font-weight:600;font-size:13px;margin-bottom:5px}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
 .field .req{color:var(--danger)}
 .field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;outline:none;transition:.15s}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
@@ -145,7 +145,7 @@ svg.lucide{width:1.15em;height:1.15em;vertical-align:-0.18em;stroke-width:2;disp
 .docthumb{width:100%;height:74px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:#fff}
 
 .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:#fff}
-table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
 th{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);position:sticky;top:0}
 tr:last-child td{border-bottom:none}
@@ -187,14 +187,13 @@ tr:last-child td{border-bottom:none}
   .hd-table .c-phone{width:108px;white-space:nowrap}
   .hd-table .c-act{width:46px}
 }
-.roomhead td{background:var(--primary-light);font-weight:700;color:var(--primary-dark)}
 .fin-table .c-ava{width:44px;text-align:center;padding-left:2px;padding-right:2px}
 .finava{display:inline-flex;vertical-align:middle;cursor:pointer}
 .finrow.open{background:var(--primary-light)}
 .finact td{padding-top:0;border-bottom:1px solid var(--border)}
 /* Bảng Dòng tiền: vừa khít, chữ nhỏ, không cuộn ngang */
 .cf-table{min-width:0;width:100%;table-layout:fixed}
-.cf-table th,.cf-table td{padding:8px 4px;font-size:11.5px;text-align:right;word-break:break-word;vertical-align:top}
+.cf-table th,.cf-table td{padding:9px 5px;font-size:13px;text-align:right;word-break:break-word;vertical-align:top}
 .cf-table th:first-child,.cf-table td:first-child{text-align:left;width:54px}
 .cf-total td{font-weight:800;background:var(--primary-light)}
 .linkbtn{background:none;border:none;color:var(--primary);font-weight:600;text-decoration:underline;padding:0}
@@ -239,11 +238,12 @@ tr:last-child td{border-bottom:none}
 .topbar.plain .sub{color:var(--muted);opacity:1}
 .card{box-shadow:none;border-radius:16px}
 .btn{border-radius:12px}
-.btn.sm{border-radius:9px}
+.btn.sm{border-radius:10px}
 .sectitle{font-size:12px;letter-spacing:.06em;color:var(--ink-3);margin:18px 2px 10px}
 /* .hint dùng ở nhiều nơi ngoài .field — trước đây không có kiểu nên hiện to bằng chữ thường */
-.hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
-.empty .ic{font-size:34px;opacity:.5}
+.hint{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.empty .ic{font-size:34px;opacity:.45;line-height:1}
+.empty .ic svg.lucide{width:38px;height:38px;stroke-width:1.6}
 
 /* Bảng: bỏ viền nặng, chỉ còn đường ngăn mảnh */
 .tablewrap{border-radius:16px}
@@ -257,9 +257,23 @@ td{border-bottom:1px solid var(--line-soft)}
 .cf-table td{font-variant-numeric:tabular-nums}
 
 /* Thanh điều hướng dưới đáy */
-.bnav-item{font-size:11px;padding:8px 2px 6px}
+.bnav-item{font-size:12px;padding:8px 2px 6px}
 .bnav-item svg.lucide{width:22px;height:22px;stroke-width:1.9}
 .bnav-item:active{background:transparent;opacity:.6}
+
+/* Nút tròn nổi: thêm khoản thu/chi, hợp đồng, thiết bị */
+.fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:35;
+  width:56px;height:56px;border-radius:18px;border:none;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px -8px rgba(13,110,253,.75)}
+.fab svg.lucide{width:26px;height:26px;stroke-width:2.4}
+.fab:active{transform:scale(.94)}
+/* Nút thao tác chỉ có icon */
+.iact{width:42px;height:42px;border-radius:12px;border:none;background:var(--surface-2);color:var(--text);
+  display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.iact svg.lucide{width:19px;height:19px}
+.iact.danger{background:var(--danger-light);color:var(--danger)}
+.iact.ok{background:var(--ok-soft);color:var(--ok-ink)}
+.iact:active{transform:scale(.94)}
 
 /* Thẻ số liệu — dùng ở trang chủ và đầu các tab */
 .stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:15px 16px 14px;margin-bottom:14px}
@@ -271,13 +285,13 @@ td{border-bottom:1px solid var(--line-soft)}
 .stat .big .u{font-size:15px;font-weight:600;color:var(--muted);margin-left:2px}
 .stat .split{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
 .stat .split .s{flex:1;min-width:0}
-.stat .split .k{font-size:12px;color:var(--muted);margin-bottom:2px}
+.stat .split .k{font-size:13px;color:var(--muted);margin-bottom:2px}
 .stat .split .v{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat .split .sep{width:1px;background:var(--line-soft);flex:0 0 auto}
 .stat .prog{margin-top:12px}
-.stat .prog .t{display:flex;font-size:12px;color:var(--muted);margin-bottom:6px}
+.stat .prog .t{display:flex;font-size:13px;color:var(--muted);margin-bottom:6px}
 .stat .prog .t b{margin-left:auto;color:var(--text);font-weight:650;font-variant-numeric:tabular-nums}
-.stat .names{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+.stat .names{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
 
 /* ============ TRANG CHỦ (màn chọn nhà) — giao diện tối giản ============ */
 .topbar.plain{background:#fff;color:var(--text);box-shadow:none;border-bottom:1px solid var(--border);padding:10px 14px;gap:8px}
@@ -321,8 +335,8 @@ td{border-bottom:1px solid var(--line-soft)}
 .hbar{height:4px;border-radius:2px;background:var(--line-soft);margin-top:10px;overflow:hidden}
 .hbar>span{display:block;height:100%;border-radius:2px;background:var(--primary)}
 .hbar.done>span{background:#12855b}
-.hfoot{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.hfoot .rooms{margin-left:auto;color:#98a1af}
+.hfoot{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hfoot .rooms{margin-left:auto;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -396,9 +410,9 @@ const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 const money=(n)=>{n=Number(n)||0;return n.toLocaleString('vi-VN')+' ₫';};
 /* Bảng màu gán CỐ ĐỊNH theo từng người (dùng chung Doanh thu / Chi phí / Quyết toán) */
 const PERSON_COLORS=[
-  {bar:'#3b82f6',bg:'#eff6ff'},{bar:'#f59e0b',bg:'#fffbeb'},{bar:'#10b981',bg:'#ecfdf5'},
-  {bar:'#ec4899',bg:'#fdf2f8'},{bar:'#8b5cf6',bg:'#f5f3ff'},{bar:'#14b8a6',bg:'#f0fdfa'},
-  {bar:'#ef4444',bg:'#fef2f2'},{bar:'#6366f1',bg:'#eef2ff'}];
+  {bar:'#4a6fa5',bg:'#eef2f8'},{bar:'#a8763f',bg:'#f8f2e9'},{bar:'#3f8a63',bg:'#eef6f1'},
+  {bar:'#a35f7e',bg:'#f8eff3'},{bar:'#6f63a8',bg:'#f1f0f8'},{bar:'#3d8585',bg:'#eef5f5'},
+  {bar:'#b0554f',bg:'#f9efee'},{bar:'#5a6a8c',bg:'#f0f2f6'}];
 function personColor(key){
   const users=STORE.users()||[];
   let idx=users.findIndex(u=>u.id===key);
@@ -556,8 +570,8 @@ function sigField(key,valObj){
   return `<div class="field"><label>Chữ ký khách hàng <span class="muted" style="font-weight:400;font-size:12px">(nếu có)</span></label>
     <div class="imgslot sig" id="${pid}">${imgSlotInner(imgSrc(valObj))}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button type="button" class="btn sec sm" onclick="signFor('${key}')">✍️ Ký tại đây</button>
-      <button type="button" class="btn sec sm" onclick="createSignLink('${key}')">📱 Khách ký ở máy khách</button></div></div>`;
+      <button type="button" class="btn sec sm" onclick="signFor('${key}')"><i data-lucide="pen-line"></i> Ký tại đây</button>
+      <button type="button" class="btn sec sm" onclick="createSignLink('${key}')"><i data-lucide="smartphone"></i> Khách ký ở máy khách</button></div></div>`;
 }
 function imgTargetByKey(key){
   const p=key.split(':');
@@ -1023,7 +1037,7 @@ function bellBtn(){
 function renderTopbar(){const tb=$('#topbar');const bell=bellBtn();
   tb.classList.toggle('plain',APP.screen==='entry');
   if(APP.screen==='entry'){
-    const av=ntAvatarHtml(NT.user?NT.user.name:'?',NT.user?NT.user.avatar:null,32);
+    const av=ntAvatarHtml(NT.user?NT.user.name:'?',NT.user?NT.user.avatar:null,32,NT.user?NT.user.id:'');
     tb.innerHTML=`<div class="mark"><i data-lucide="house"></i></div>
       <div class="ttl">Nhà trọ Lý Sơn</div>${bell}
       <button class="iconbtn" aria-label="Quản lý hệ thống" onclick="goSystem()"><i data-lucide="settings"></i></button>
@@ -1193,7 +1207,7 @@ function houseForm(id){
         <div class="field"><label>Năm sinh</label><input id="f_mgryob" inputmode="numeric" value="${esc(h.manager.birthYear)}" placeholder="VD: 1985"></div></div>
       <div class="field"><label>Chữ ký người quản lý</label>
         <div class="imgslot sig" id="prev_mgrsig">${imgSlotInner(imgSrc(h.manager.signature))}</div>
-        <button type="button" class="btn sec sm" onclick="signManager()">✍️ Ký tên</button>
+        <button type="button" class="btn sec sm" onclick="signManager()"><i data-lucide="pen-line"></i> Ký tên</button>
         <div class="hint">Chữ ký này sẽ tự động gắn vào mọi hợp đồng của nhà.</div></div>
       <div class="sectitle">Thời hạn hợp đồng của nhà</div>
       <div class="grid2"><div class="field"><label>Từ tháng/năm</label><input id="f_cs" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(h.contractStart))}"></div>
@@ -1412,7 +1426,7 @@ function renderEndedContracts(box){
   let ended=(h.contracts||[]).filter(c=>isEnded(c));
   if(q)ended=ended.filter(ct=>(ctMainName(ct)||'').toLowerCase().includes(q));
   ended=ended.slice().sort((a,b)=>String(b.endedAt||'').localeCompare(String(a.endedAt||'')));
-  if(!ended.length){box.innerHTML=`<div class="empty"><div class="ic">🔚</div>${q?'Không tìm thấy hợp đồng phù hợp.':'Chưa có hợp đồng nào kết thúc.'}</div>`;return;}
+  if(!ended.length){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="archive"></i></div>${q?'Không tìm thấy hợp đồng phù hợp.':'Chưa có hợp đồng nào kết thúc.'}</div>`;return;}
   const rows=ended.map(ct=>{const room=(h.rooms||[]).find(r=>r.id===ct.roomId);const rn=room?room.name:'—';
     return `<div class="card" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px">
@@ -1439,22 +1453,22 @@ function renderCashFlow(box){
   if(cf.length){
     const desc=cf.slice().reverse(); /* mới nhất -> cũ nhất */
     rows=`<div class="tablewrap"><table class="cf-table">
-      <thead><tr><th>Tháng</th><th>Doanh thu</th><th>Chi phí</th><th>Lợi nhuận</th></tr></thead>
+      <thead><tr><th>Tháng</th><th>Thu (₫)</th><th>Chi (₫)</th><th>Lợi nhuận</th></tr></thead>
       <tbody>
-        <tr class="cf-total"><td>Tổng</td><td>${money(totRev)}</td><td>${money(totCost)}</td><td style="color:${totProfit>=0?'#16a34a':'var(--danger)'}">${money(totProfit)}</td></tr>
+        <tr class="cf-total"><td>Tổng</td><td>${numVi(totRev)}</td><td>${numVi(totCost)}</td><td style="color:${totProfit>=0?'var(--ok-ink)':'var(--danger)'}">${numVi(totProfit)}</td></tr>
         ${desc.map(r=>{const p=(Number(r.revenue)||0)-(Number(r.cost)||0);const open=(APP.cfOpen===r.id);
-          return `<tr class="finrow${open?' open':''}" onclick="setCfOpen('${r.id}')" style="cursor:pointer"><td>${esc(isoToMy(r.month))}</td><td>${money(r.revenue)}</td><td>${money(r.cost)}</td><td style="font-weight:600;color:${p>=0?'#16a34a':'var(--danger)'}">${money(p)}</td></tr>`+
+          return `<tr class="finrow${open?' open':''}" onclick="setCfOpen('${r.id}')" style="cursor:pointer"><td>${esc(isoToMy(r.month))}</td><td>${numVi(r.revenue)}</td><td>${numVi(r.cost)}</td><td style="font-weight:600;color:${p>=0?'var(--ok-ink)':'var(--danger)'}">${numVi(p)}</td></tr>`+
             (open?`<tr class="finact"><td colspan="4" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn sec sm" onclick="event.stopPropagation();cfForm('${r.id}')"><i data-lucide="pencil"></i> Sửa</button>
               <button class="btn danger sm" onclick="event.stopPropagation();cfDelete('${r.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:'');}).join('')}
       </tbody></table></div>`;
   }else{
-    rows=`<div class="empty"><div class="ic">💵</div>Chưa có dữ liệu dòng tiền.<br>Bấm “<i data-lucide="plus"></i> Thêm tháng” hoặc “⚡ Tự động điền tháng đã chốt”.</div>`;
+    rows=`<div class="empty"><div class="ic"><i data-lucide="trending-up"></i></div>Chưa có dữ liệu dòng tiền.<br>Bấm “Thêm tháng” hoặc “Tự động điền tháng đã chốt”.</div>`;
   }
   box.innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <button class="btn sm" onclick="cfForm()"><i data-lucide="plus"></i> Thêm tháng</button>
-      <button class="btn sm sec" onclick="cfAutoFill()">⚡ Tự động điền tháng đã chốt${lockedCount?` (${lockedCount})`:''}</button>
+      <button class="btn sm sec" onclick="cfAutoFill()"><i data-lucide="zap"></i> Tự động điền tháng đã chốt${lockedCount?` (${lockedCount})`:''}</button>
     </div>
     ${cf.length?`<div class="card" style="margin-bottom:12px">
        <div style="font-weight:700;margin-bottom:8px">Lợi nhuận luỹ kế</div>
@@ -1538,7 +1552,7 @@ function renderCCCD(box){
     const custs=ct.type==='KTX'?(ct.customer?[ct.customer]:[]):(ct.customers||[]);
     custs.forEach(cu=>{if(q&&!((cu.name||'').toLowerCase().includes(q)))return;const has=imgHas(cu.cccdPhoto);(byRoom[roomName]=byRoom[roomName]||[]).push({name:cu.name||'—',src:has?imgSrc(cu.cccdPhoto):''});total++;if(!has)missing++;});
   });
-  if(!total){box.innerHTML=`<div class="empty"><div class="ic">🪪</div>${q?'Không tìm thấy khách phù hợp.':'Nhà này chưa có khách nào.'}</div>`;return;}
+  if(!total){box.innerHTML=`<div class="empty"><div class="ic"><i data-lucide="contact"></i></div>${q?'Không tìm thấy khách phù hợp.':'Nhà này chưa có khách nào.'}</div>`;return;}
   const roomNames=Object.keys(byRoom).sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
   let rows='';
   roomNames.forEach(rn=>{
@@ -1582,14 +1596,14 @@ function renderVehicles(box){
 /* ---------- TAB HỢP ĐỒNG ---------- */
 function renderTabHopDong(c,h){
   c.innerHTML=`
-    <button class="btn lg block" style="margin-bottom:10px" onclick="chooseContractType()"><i data-lucide="plus"></i> Thêm hợp đồng</button>
-    <div class="field" style="margin-bottom:10px"><input id="hdSearch" placeholder="Tìm theo tên · CCCD · SĐT" value="${esc(APP.hdSearch||'')}" oninput="APP.hdSearch=this.value;renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId))"></div>
-    <div id="hdBody"></div>`;
+    <div class="field" style="margin-bottom:12px"><input id="hdSearch" placeholder="Tìm theo tên · CCCD · SĐT" value="${esc(APP.hdSearch||'')}" oninput="APP.hdSearch=this.value;renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId))"></div>
+    <div id="hdBody"></div>
+    <button class="fab" title="Thêm hợp đồng" aria-label="Thêm hợp đồng" onclick="chooseContractType()"><i data-lucide="plus"></i></button>`;
   renderContractTable($('#hdBody',c),h);
 }
 function chooseContractType(){openModal({title:'Thêm hợp đồng',
   bodyHTML:`<p class="muted" style="margin-top:0">Chọn loại hợp đồng:</p>
-    <button class="btn lg block" style="margin-bottom:10px;background:var(--ktx)" onclick="contractForm('KTX')">🛏️ Hợp đồng KTX</button>
+    <button class="btn lg block" style="margin-bottom:10px;background:var(--ktx)" onclick="contractForm('KTX')"><i data-lucide="bed-double"></i> Hợp đồng KTX</button>
     <button class="btn lg block" style="background:var(--tro)" onclick="contractForm('TRO')"><i data-lucide="house"></i> Hợp đồng phòng trọ</button>`});}
 
 function setHdOpen(key){APP.hdOpen=(APP.hdOpen===key?'':key);renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId));}
@@ -1664,7 +1678,7 @@ function deleteContract(ctId){const h=STORE.house(APP.houseId);const ct=(h.contr
   const nm=ct?(ct.type==='KTX'?((ct.customer&&ct.customer.name)||''):'phòng trọ'):'';
   openModal({title:'Xoá hợp đồng',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá hợp đồng${nm?' của <b>'+esc(nm)+'</b>':''} không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteContract('${ctId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
+    footHTML:`<button class="btn sec" onclick="closeModal()">Không xoá</button><button class="btn danger" onclick="doDeleteContract('${ctId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
 function doDeleteContract(ctId){const h=STORE.house(APP.houseId);const ct=h.contracts.find(x=>x.id===ctId);if(ct)dropImages(contractCustomerImgs(ct));h.contracts=h.contracts.filter(x=>x.id!==ctId);STORE.save();enqueueOp({entity:'contract',type:'delete',houseId:APP.houseId,id:ctId});closeModal();toast('Đã xoá hợp đồng','ok');render();}
 /* ===== Kết thúc hợp đồng (lưu lịch sử 6 tháng) ===== */
 var ENDED_KEEP_MONTHS=6;
@@ -1679,7 +1693,7 @@ function endContractForm(ctId){
     <div class="field"><label>Lý do kết thúc <span class="req">*</span></label>
       <textarea id="ecReason" rows="2" style="resize:vertical" placeholder="VD: Hết hạn, chuyển đi, vi phạm nội quy…"></textarea></div>`;
   openModal({title:'Kết thúc hợp đồng',bodyHTML:body,
-    footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn danger" id="ecSave">🔚 Kết thúc</button>`,
+    footHTML:`<button class="btn sec" onclick="closeModal()">Huỷ</button><button class="btn danger" id="ecSave"><i data-lucide="archive"></i> Kết thúc</button>`,
     onMount:(m)=>{$('#ecSave',m).onclick=()=>doEndContract(ctId);}});
 }
 function doEndContract(ctId){
@@ -1910,35 +1924,32 @@ function renderFinanceTab(c,h,kind){
   }
   let rows='';
   if(list.length){
-    const col1=kind==='chi'?'Nội dung':'Đối tượng';
     const tShort={};if(kind==='thu')financeTargets(h).forEach(t=>{tShort[t.key]=t.short;});
     const prof={};(NT.profiles||[]).forEach(p=>prof[p.id]=p);
-    const avatarFor=(e)=>{const p=e.userId?prof[e.userId]:null;return ntAvatarHtml(e.userName||(p&&p.name)||'?',p&&p.avatar,30);};
+    const avatarFor=(e)=>{const p=e.userId?prof[e.userId]:null;return ntAvatarHtml(e.userName||(p&&p.name)||'?',p&&p.avatar,30,e.userId||('nm:'+(e.userName||'?')));};
     rows=`<div class="tablewrap"><table class="fin-table fin-${kind}">
-      <thead><tr><th class="c-stt">No</th><th class="c-ava"></th><th class="c-obj">${col1}</th><th class="c-money">Số tiền</th></tr></thead>
       <tbody>${list.map((e,i)=>{const col=personColor(e.userId||('nm:'+(e.userName||'?')));const open=(APP.finOpen===e.id);
         return `<tr class="finrow${open?' open':''}"${locked?'':` onclick="setFinOpen('${e.id}')" style="cursor:pointer"`}>
-          <td class="c-stt" style="border-left:4px solid ${col.bar}">${i+1}</td>
-          <td class="c-ava"><span class="finava" data-name="${esc(e.userName||'')}" onclick="event.stopPropagation();filterFinByName(this.dataset.name)" title="${esc(e.userName||'')}">${avatarFor(e)}</span></td>
+          <td class="c-ava" style="border-left:4px solid ${col.bar}"><span class="finava" data-name="${esc(e.userName||'')}" onclick="event.stopPropagation();filterFinByName(this.dataset.name)" title="${esc(e.userName||'')}">${avatarFor(e)}</span></td>
           <td class="c-obj">${esc(((kind==='thu'&&tShort[e.targetKey])||e.label)+(e.note?' ('+e.note+')':''))}</td>
-          <td class="c-money">${money(e.amount)}</td></tr>${(open&&!locked)?`<tr class="finact"><td class="c-stt"></td><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:10px;justify-content:flex-end">
-            <button class="btn sec sm" onclick="event.stopPropagation();financeForm('${kind}','${e.id}')"><i data-lucide="pencil"></i> Sửa</button>
-            <button class="btn danger sm" onclick="event.stopPropagation();deleteFinance('${e.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:''}`;}).join('')}</tbody></table></div>`;
-  } else { rows=`<div class="empty"><div class="ic">${kind==='thu'?'💵':'🧾'}</div>${fp?`Không có khoản ${title.toLowerCase()} nào do <b>${esc(fp)}</b> nhập.`:`Chưa có khoản ${title.toLowerCase()} nào trong tháng này.`}</div>`; }
+          <td class="c-money">${money(e.amount)}</td></tr>${(open&&!locked)?`<tr class="finact"><td colspan="3" style="padding-top:2px"><div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="iact" title="Sửa khoản này" aria-label="Sửa" onclick="event.stopPropagation();financeForm('${kind}','${e.id}')"><i data-lucide="pencil"></i></button>
+            <button class="iact danger" title="Xoá khoản này" aria-label="Xoá" onclick="event.stopPropagation();deleteFinance('${e.id}')"><i data-lucide="trash-2"></i></button></div></td></tr>`:''}`;}).join('')}</tbody></table></div>`;
+  } else { rows=`<div class="empty"><div class="ic"><i data-lucide="${kind==='thu'?'wallet':'receipt'}"></i></div>${fp?`Không có khoản ${title.toLowerCase()} nào do <b>${esc(fp)}</b> nhập.`:`Chưa có khoản ${title.toLowerCase()} nào trong tháng này.`}</div>`; }
   const lockCtl=locked
-    ? `<span class="badge danger">Đã khoá</span>${isAdmin()?` <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`:''}`
-    : `<button class="btn sec sm" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i> Khoá tháng</button>`;
+    ? `<span class="badge danger">Đã khoá</span>${isAdmin()?` <button class="iact ok" title="Mở khoá tháng" aria-label="Mở khoá tháng" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i></button>`:''}`
+    : `<button class="iact" title="Khoá tháng" aria-label="Khoá tháng" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i></button>`;
   c.innerHTML=`
     <div class="stat">
       <div class="row1"><span class="lbl">${title} · tháng ${esc(isoToMy(am))}</span>
         <span class="right">${lockCtl}</span></div>
       <div class="big">${numVi(total)}<span class="u">₫</span></div>
       <div class="muted" style="font-size:13px;margin-top:3px">${list.length} khoản${fp?'':''}</div>
-      ${fp?`<div style="margin-top:8px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">✕ Bỏ lọc</button></div>`:''}
+      ${fp?`<div style="margin-top:8px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">Bỏ lọc</button></div>`:''}
       ${prog}
     </div>
-    ${locked?'':`<button class="btn block" style="margin-bottom:14px" onclick="financeForm('${kind}')"><i data-lucide="plus"></i> Thêm khoản ${title.toLowerCase()}</button>`}
-    ${rows}`;
+    ${rows}
+    ${locked?'':`<button class="fab" title="Thêm khoản ${title.toLowerCase()}" aria-label="Thêm khoản ${title.toLowerCase()}" onclick="financeForm('${kind}')"><i data-lucide="plus"></i></button>`}`;
 }
 function unlockMonthThenRender(id){unlockMonth(id);}
 /* ----- Lọc theo người nhập (cột "Nhập") ----- */
@@ -2025,7 +2036,7 @@ function onChiTargetChange(){const h=STORE.house(APP.houseId);const sel=$('#fTar
   ntChiCustomZone();
   const auto=$('#fChiAuto'); if(auto){ auto.innerHTML='';
     if(sel.value.indexOf('item:')===0){const it=(h.expenseItems||[])[Number(sel.value.slice(5))];
-      if(it&&it.amount){auto.innerHTML=`<button type="button" class="btn sec sm" style="margin-top:8px" onclick="autoFillAmount('${it.amount}')">⚡ Tự động: ${money(it.amount)}</button>`;}}}
+      if(it&&it.amount){auto.innerHTML=`<button type="button" class="btn sec sm" style="margin-top:8px" onclick="autoFillAmount('${it.amount}')"><i data-lucide="zap"></i> Tự động: ${money(it.amount)}</button>`;}}}
 }
 /* ----- Vùng tự nhập tên đối tượng/khoản thu khác ----- */
 function renderCustomZone(){
@@ -2051,7 +2062,7 @@ function renderAmountZone(){
     const price=ct?Number(ct.pricePerBed)||0:0;
     zone.innerHTML=`<div class="field"><label>Số tiền (₫) <span class="req">*</span></label>
       <input id="fAmount" data-money inputmode="numeric" value="${esc(maskThousand(e.amount))}" placeholder="VD: 1.800.000">
-      ${price?`<button type="button" class="btn sec sm" style="margin-top:8px" onclick="autoFillAmount('${price}')">⚡ Tự động theo hợp đồng (${money(price)})</button>`
+      ${price?`<button type="button" class="btn sec sm" style="margin-top:8px" onclick="autoFillAmount('${price}')"><i data-lucide="zap"></i> Tự động theo hợp đồng (${money(price)})</button>`
               :`<div class="hint">Hợp đồng chưa khai tiền giường/tháng.</div>`}</div>`;
   }else if(key.indexOf('tro:')===0){
     const roomId=key.slice(4);
@@ -2066,7 +2077,7 @@ function renderAmountZone(){
       <div class="hint" style="margin-bottom:8px">Số người: <b>${persons}</b> · Số xe: <b>${vehicles}</b> · Giá điện: <b>${money(ct.electricPerKwh)}/kWh</b></div>
       <div class="field"><label>Số điện tiêu thụ tháng này (kWh)</label>
         <input id="fKwh" inputmode="numeric" value="${esc(b.kwh!=null?b.kwh:'')}" placeholder="VD: 50"></div>
-      <button type="button" class="btn sec sm" onclick="calcTro('${roomId}')">🧮 Tính tự động</button>
+      <button type="button" class="btn sec sm" onclick="calcTro('${roomId}')"><i data-lucide="calculator"></i> Tính tự động</button>
       <div id="troResult" style="margin-top:10px">${(e.amount?troResultHTML(b,e.amount):'')}</div>
       <input type="hidden" id="fAmount" value="${esc(unmask(e.amount))}">`;
   }
@@ -2137,7 +2148,7 @@ function deleteFinance(id){const h=STORE.house(APP.houseId);const e=(h.finance||
   const nm=e?(e.label||''):'';const amt=e?money(e.amount):'';
   openModal({title:'Xoá khoản',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá khoản${nm?' <b>'+esc(nm)+'</b>':''}${amt?' ('+amt+')':''} không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteFinance('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
+    footHTML:`<button class="btn sec" onclick="closeModal()">Không xoá</button><button class="btn danger" onclick="doDeleteFinance('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
 function doDeleteFinance(id){const h=STORE.house(APP.houseId);const _e=(h.finance||[]).find(x=>x.id===id);
   if(blockIfLocked(h,_e?_e.month:STORE.activeMonth())){closeModal();return;}
   h.finance=(h.finance||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'finance',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá','ok');render();}
@@ -2169,7 +2180,7 @@ function renderTabThietBi(c,h){
       <div><div style="font-weight:700">Thiết bị</div>
         <div class="muted" style="font-size:13px">${devs.length} thiết bị · Tổng chi phí: <b>${money(grandTotal)}</b></div></div>
     </div>
-    <button class="btn block" style="margin-bottom:12px" onclick="deviceForm()"><i data-lucide="plus"></i> Thêm thiết bị</button>`;
+    <button class="fab" title="Thêm thiết bị" aria-label="Thêm thiết bị" onclick="deviceForm()"><i data-lucide="plus"></i></button>`;
   if(!devs.length){ body+=`<div class="empty"><div class="ic"><i data-lucide="wrench"></i></div>Chưa có thiết bị nào.</div>`; c.innerHTML=body; return; }
   devs.forEach(d=>{
     const open=(APP.devOpen===d.id);const lastTs=deviceLastTs(d);const overdue=deviceOverdue(d);const cyc=Number(d.cycleMonths)||0;const cnt=(d.logs||[]).length;const tot=deviceLogCost(d);
@@ -2240,7 +2251,7 @@ function deleteDevice(id){
   const h=STORE.house(APP.houseId);const d=(h.devices||[]).find(x=>x.id===id);
   openModal({title:'Xoá thiết bị',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá thiết bị${d?' <b>'+esc(d.name)+'</b>':''} cùng toàn bộ lịch sử bảo dưỡng không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDevice('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
+    footHTML:`<button class="btn sec" onclick="closeModal()">Không xoá</button><button class="btn danger" onclick="doDeleteDevice('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
 }
 function doDeleteDevice(id){const h=STORE.house(APP.houseId);h.devices=(h.devices||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'device',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá thiết bị','ok');render();}
 /* ----- Thêm/sửa lịch sử sửa chữa/bảo dưỡng ----- */
@@ -2272,7 +2283,7 @@ function saveDeviceLog(devId,logId,editing){
 function deleteDeviceLog(devId,logId){
   openModal({title:'Xoá bảo dưỡng',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá bản ghi bảo dưỡng này không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
-    footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteDeviceLog('${devId}','${logId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
+    footHTML:`<button class="btn sec" onclick="closeModal()">Không xoá</button><button class="btn danger" onclick="doDeleteDeviceLog('${devId}','${logId}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});
 }
 function doDeleteDeviceLog(devId,logId){const h=STORE.house(APP.houseId);const d=(h.devices||[]).find(x=>x.id===devId);if(d){d.logs=(d.logs||[]).filter(x=>x.id!==logId);STORE.save();enqueueDeviceUpsert(devId);}closeModal();toast('Đã xoá','ok');render();}
 /* gửi cả thiết bị (kèm logs) lên server để đồng bộ + ghi Sheet */
@@ -2342,7 +2353,7 @@ function renderTabQuyetToan(c,h){
   const txHTML=tx.length?tx.map(t=>`<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
       <div><b style="color:${nameCol[t.from]||'inherit'}">${esc(t.from)}</b> &nbsp;→&nbsp; <b style="color:${nameCol[t.to]||'inherit'}">${esc(t.to)}</b></div>
       <div style="font-weight:800;font-size:17px">${money(t.amt)}</div></div>`).join('')
-    :`<div class="empty"><div class="ic">✓</div>Đã cân bằng — không cần chuyển tiền.</div>`;
+    :`<div class="empty"><div class="ic"><i data-lucide="check-circle-2"></i></div>Đã cân bằng — không cần chuyển tiền.</div>`;
 
   c.innerHTML=`
     <div class="card" style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
@@ -2640,11 +2651,11 @@ async function flushOutbox(){
   if(getOutbox().length) scheduleFlush();
 }
 /* Ảnh đại diện tròn (có ảnh -> ảnh; chưa có -> chữ cái đầu, màu theo người) */
-function ntAvatarHtml(name,url,size){
+function ntAvatarHtml(name,url,size,key){
   size=size||44;
   if(url) return `<img src="${esc(url)}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;background:#e5e7eb">`;
   const ch=((name||'?').trim().charAt(0)||'?').toUpperCase();
-  const col=personColor(name||'');
+  const col=personColor(key||name||'');
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col.bar};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none;vertical-align:middle;font-size:${Math.round(size*0.42)}px">${esc(ch)}</div>`;
 }
 /* Thời gian: <24h ghi "x phút/giờ trước", sau 24h ghi ngày giờ cụ thể */
@@ -2680,7 +2691,7 @@ async function ntChangeAvatar(){
 function openSync(){
   openModal({title:'Tài khoản',
     bodyHTML:`<div style="text-align:center;margin-bottom:14px">
-        ${ntAvatarHtml(NT.user?NT.user.name:'', NT.user?NT.user.avatar:null, 84)}
+        ${ntAvatarHtml(NT.user?NT.user.name:'', NT.user?NT.user.avatar:null, 84, NT.user?NT.user.id:'')}
         <div><button class="btn sm ghost" style="margin-top:10px" onclick="ntChangeAvatar()"><i data-lucide="camera"></i> Đổi ảnh đại diện</button></div>
       </div>
       <div class="card" style="margin-bottom:12px">
@@ -3054,7 +3065,7 @@ async function ntOpenNotifications(){
     if(!show.length){ box.innerHTML='<div class="empty">Chưa có thông báo'+(scope?' cho nhà này':'')+'</div>'; }
     else{
       box.innerHTML=show.map(n=>{const a=n.activity||{};const unread=!n.read_at;
-        const av=ntAvatarHtml(a.actor_name,(prof[a.actor_id]||{}).avatar,44);
+        const av=ntAvatarHtml(a.actor_name,(prof[a.actor_id]||{}).avatar,44,a.actor_id||('nm:'+(a.actor_name||'?')));
         return `<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--border)">
           ${av}
           <div style="flex:1;min-width:0">
