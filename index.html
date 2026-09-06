@@ -1944,7 +1944,7 @@ function financeTargets(h){const out=[];const sm=shortNameMap(h);
     out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+name,short:pre+(sm[name]||name),billable:true});});
   /* Phòng trọ: sắp theo số phòng */
   (h.rooms||[]).filter(r=>r.type==='TRO').slice().sort((a,b)=>natCmp(a.name,b.name))
-    .forEach(r=>{const nm=troRoomNames(h,r.id);const lbl='Phòng '+r.name+' ('+(nm.length?nm.join(', '):'trống')+')';
+    .forEach(r=>{const nm=troRoomNames(h,r.id);const lbl='Phòng '+r.name+' - '+(nm.length?nm.join(', '):'trống');
       /* billable=false: phòng chưa có hợp đồng -> không tính vào "chưa đóng", nhưng vẫn chọn được nếu cần */
       out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl,billable:!!activeTroContract(h,r.id)});});
   return out;
