@@ -363,7 +363,12 @@ td{border-bottom:1px solid var(--line-soft)}
 .hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid #cfd6e0;border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
 .hitem:active{transform:scale(.995)}
 .hitem .nm{font-size:20px;font-weight:650;letter-spacing:-.015em;text-align:center;line-height:1.25}
-.hitem .hrooms{text-align:center;font-size:13px;color:var(--muted);margin-top:3px}
+.hitem .hprofit{text-align:center;font-size:21px;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;margin-top:5px;line-height:1.2}
+.hitem .hprofit.pos{color:var(--ok-ink)}
+.hitem .hprofit.neg{color:var(--danger)}
+.hitem .hprofit .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:2px}
+.hitem .hrooms{text-align:center;font-size:13px;color:var(--muted);margin-top:2px}
 .hitem .flow{margin-top:12px;padding-top:12px}
 .hitem .flow .n{font-size:16px}
 .hpill{margin-left:auto;flex:0 0 auto;font-size:12.5px;font-weight:650;padding:3px 10px;border-radius:999px;background:var(--warn-soft);color:var(--warn-ink)}
@@ -1094,6 +1099,8 @@ function renderTabs(){const host=$('#tabsHost');if(host)host.innerHTML='';const 
 
 /* ---------- ENTRY (trang chủ) ---------- */
 const numVi=(n)=>(Number(n)||0).toLocaleString('vi-VN');
+/* Lợi nhuận: số âm dùng dấu trừ thật, dễ đọc hơn dấu gạch nối */
+const profitVi=(n)=>((Number(n)||0)<0?'−':'')+numVi(Math.abs(Number(n)||0));
 /* Số liệu tóm tắt của một nhà trong tháng: đã thu bao nhiêu tiền, bao nhiêu đối tượng đã đóng */
 function houseStats(h,month){
   const targets=financeTargets(h).filter(t=>t.billable!==false);
@@ -1119,7 +1126,7 @@ function renderEntry(c){
   const board=am
     ? `<div class="stat center">
          <button class="statmonth" onclick="goSystem()" aria-label="Đổi tháng thao tác">Lợi nhuận tháng <span class="m">${esc(isoToMy(am))}</span><i data-lucide="chevron-down"></i></button>
-         <div class="big ${profit>=0?'pos':'neg'}">${numVi(profit)}<span class="u">₫</span></div>
+         <div class="big ${profit>=0?'pos':'neg'}">${profitVi(profit)}<span class="u">₫</span></div>
          <div class="flow">
            <div class="f in" title="Doanh thu"><span class="ic"><i data-lucide="arrow-down-left"></i></span><span class="n">${numVi(sRev)} ₫</span></div>
            <div class="sep"></div>
@@ -1139,6 +1146,7 @@ function renderEntry(c){
   }else{
     list.innerHTML=houses.map(h=>{
       const x=st[h.id];
+      const hp=x.revenue-x.cost;
       const pct=x.total?Math.round(x.paid/x.total*100):0;
       const done=x.total>0&&x.paid>=x.total;
       const pill=!am?'<span class="hpill none">Chưa chọn tháng</span>'
@@ -1147,6 +1155,7 @@ function renderEntry(c){
               :`<span class="hpill">Còn ${x.total-x.paid} chưa đóng</span>`));
       return `<button class="hitem" type="button" onclick="enterHouse('${h.id}')">
         <div class="nm">${esc(h.name)}</div>
+        <div class="hprofit ${hp>=0?'pos':'neg'}">${profitVi(hp)}<span class="u">₫</span></div>
         <div class="hrooms">${esc(roomSummary(h))}</div>
         <div class="flow">
           <div class="f in" title="Doanh thu"><span class="ic"><i data-lucide="arrow-down-left"></i></span><span class="n">${numVi(x.revenue)} ₫</span></div>
