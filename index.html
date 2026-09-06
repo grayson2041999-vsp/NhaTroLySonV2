@@ -1660,6 +1660,13 @@ function shortNameMap(h){
   const map={};names.forEach(n=>{const s=lastTwoWords(n);map[n]=cnt[s]>1?n:s;});
   return map;
 }
+/* Lấy chữ cuối của họ tên (vd "Trần Kiến Vĩ" -> "Vĩ") — dùng cho nhãn phòng trọ */
+function lastWord(name){const p=String(name||'').trim().split(/\s+/).filter(Boolean);return p.length?p[p.length-1]:'';}
+/* Tên (chữ cuối) của các khách đang ở trong một phòng trọ, theo thứ tự trong hợp đồng */
+function troRoomNames(h,roomId){const out=[];
+  (h.contracts||[]).forEach(ct=>{if(isEnded(ct)||ct.type!=='TRO'||ct.roomId!==roomId)return;
+    (ct.customers||[]).forEach(c=>{const n=lastWord(c&&c.name);if(n)out.push(n);});});
+  return out;}
 function financeTargets(h){const out=[];const sm=shortNameMap(h);
   const roomName=(id)=>{const r=(h.rooms||[]).find(x=>x.id===id);return r?r.name:'';};
   const natCmp=(a,b)=>String(a||'').localeCompare(String(b||''),'vi',{numeric:true,sensitivity:'base'});
@@ -1671,7 +1678,7 @@ function financeTargets(h){const out=[];const sm=shortNameMap(h);
     out.push({type:'KTX',key:'ktx:'+ct.id,label:pre+name,short:pre+(sm[name]||name)});});
   /* Phòng trọ: sắp theo số phòng */
   (h.rooms||[]).filter(r=>r.type==='TRO').slice().sort((a,b)=>natCmp(a.name,b.name))
-    .forEach(r=>{const lbl='Phòng '+r.name+' (trọ)';out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl});});
+    .forEach(r=>{const nm=troRoomNames(h,r.id);const lbl='Phòng '+r.name+' ('+(nm.length?nm.join(', '):'trống')+')';out.push({type:'TRO',key:'tro:'+r.id,label:lbl,short:lbl});});
   return out;
 }
 
