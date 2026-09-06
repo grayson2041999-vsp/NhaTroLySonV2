@@ -304,6 +304,39 @@ td{border-bottom:1px solid var(--line-soft)}
 .avatarbtn{background:none;border:none;padding:0;flex:0 0 auto;display:flex;border-radius:50%}
 .avatarbtn:active{transform:scale(.95)}
 
+/* Dòng tiền: lợi nhuận từng tháng */
+.cfp{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
+.cfp.pos{color:var(--ok-ink)}.cfp.neg{color:var(--danger)}
+/* Quyết toán: thẻ theo người */
+.plist{display:flex;flex-direction:column;gap:10px}
+.prow{background:var(--surface-2);border-radius:12px;padding:11px 13px}
+.prow-top{display:flex;align-items:center;gap:10px}
+.pnm{flex:1;min-width:0;display:flex;align-items:center;gap:9px;font-weight:650;font-size:15px}
+.pbal{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
+.pbal.warn{color:var(--warn-ink)}.pbal.ok{color:var(--ok-ink)}.pbal.zero{color:var(--muted)}
+.prow-kv{display:flex;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.prow-kv>div{flex:1;min-width:0}
+.prow-kv span{display:block;font-size:12px;color:var(--muted)}
+.prow-kv b{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Màn đăng nhập */
+.loginwrap{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.logincard{background:var(--card);border:1px solid #cfd6e0;border-radius:20px;padding:26px 22px 22px;max-width:360px;width:100%}
+.logincard h2{text-align:center;margin:12px 0 2px;font-size:21px;letter-spacing:-.01em}
+.logincard .sub{text-align:center;color:var(--muted);margin:0 0 20px;font-size:14px}
+.mark.lg{width:52px;height:52px;border-radius:16px;margin:0 auto}
+.mark.lg svg.lucide{width:27px;height:27px}
+.loginmsg{color:var(--danger);font-size:13px;min-height:19px;margin:6px 0 8px}
+
+/* Hàng danh sách ở màn Quản lý hệ thống */
+.srow{background:var(--card);border:1px solid #cfd6e0;border-radius:16px;padding:13px 13px 12px}
+.srow-top{display:flex;align-items:center;gap:10px}
+.srow-id{flex:1;min-width:0}
+.srow-id .nm{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.srow-id .ad{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow-act{display:flex;gap:7px;flex:0 0 auto}
+.srow-meta{font-size:13px;color:var(--muted);margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft)}
+
 /* Thẻ dashboard canh giữa: tháng bấm được để đổi */
 .stat.center{text-align:center}
 .stat.center .big{margin-top:2px}
@@ -1121,43 +1154,43 @@ function renderEntry(c){
 
 /* ---------- SYSTEM ---------- */
 function renderSystem(c){const houses=STORE.houses();const am=STORE.activeMonth();
-  c.innerHTML=`<button class="btn lg block" style="margin-bottom:16px" onclick="houseForm()"><i data-lucide="plus"></i> Thêm nhà mới</button>
-    <div class="card">
-      <div class="sectitle" style="margin-top:0">Tháng đang thao tác</div>
-      <div class="row" style="align-items:flex-end">
-        <div class="field" style="margin:0"><label>Tháng/năm (MM/YYYY)</label>
-          <input id="amInput" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(am))}"></div>
-        <button class="btn" style="flex:0 0 auto" onclick="saveActiveMonth()">Lưu tháng</button>
+  c.innerHTML=`
+    <div class="stat">
+      <div class="row1"><span class="lbl">Tháng đang thao tác</span></div>
+      <div class="row" style="align-items:flex-end;margin-top:4px">
+        <div class="field" style="margin:0"><input id="amInput" inputmode="numeric" placeholder="MM/YYYY" maxlength="7" oninput="this.value=maskMy(this.value)" value="${esc(isoToMy(am))}"></div>
+        <button class="btn" style="flex:0 0 auto" onclick="saveActiveMonth()">Lưu</button>
       </div>
-      <div class="hint">Doanh thu / chi phí sẽ được nhập vào tháng này.</div>
+      <div class="hint">Mọi khoản thu / chi sẽ được nhập vào tháng này.</div>
     </div>
     <div class="sectitle">Danh sách nhà</div>
-    <div id="sysList"></div>
-    <div class="card" style="margin-top:14px">
-      <div class="sectitle" style="margin-top:0">Khoá tháng theo nhà ${am?`(${esc(isoToMy(am))})`:''}</div>
-      <div id="lockList"></div>
-    </div>`;
+    <div id="sysList" class="hlist"></div>
+    <div class="sectitle">Khoá tháng${am?` · ${esc(isoToMy(am))}`:''}</div>
+    <div id="lockList" class="hlist"></div>
+    <button class="fab" title="Thêm nhà mới" aria-label="Thêm nhà mới" onclick="houseForm()"><i data-lucide="plus"></i></button>`;
   const list=$('#sysList',c);
-  list.innerHTML=houses.length?houses.map(h=>`<div class="card">
-    <div class="hcard" style="cursor:default"><div class="av"><i data-lucide="house"></i></div>
-      <div class="info"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div></div>
-    <div style="margin:10px 0 12px"><span class="badge ktx">${h.rooms.filter(r=>r.type==='KTX').length} KTX</span>
-      <span class="badge tro">${h.rooms.filter(r=>r.type==='TRO').length} phòng trọ</span>
-      <span class="badge warn">HĐ: ${fmtMonthVi(h.contractStart)} – ${fmtMonthVi(h.contractEnd)}</span>
-      ${imgHas(h.manager&&h.manager.signature)?'<span class="badge ok">Đã ký QL</span>':''}</div>
-    <div class="hactions">
-      <button class="hact view" onclick="houseInfo('${h.id}')"><i data-lucide="eye"></i><span>Xem</span></button>
-      <button class="hact edit" onclick="houseForm('${h.id}')"><i data-lucide="pencil"></i><span>Sửa</span></button>
-      ${(NT.user&&NT.user.role==='admin')?`<button class="hact del" onclick="confirmDeleteHouse('${h.id}')"><i data-lucide="trash-2"></i><span>Xoá</span></button>`:''}
-    </div></div>`).join(''):`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;
+  list.innerHTML=houses.length?houses.map(h=>`<div class="srow">
+    <div class="srow-top">
+      <div class="srow-id"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div>
+      <div class="srow-act">
+        <button class="iact" title="Xem thông tin nhà" aria-label="Xem" onclick="houseInfo('${h.id}')"><i data-lucide="eye"></i></button>
+        <button class="iact" title="Sửa nhà" aria-label="Sửa" onclick="houseForm('${h.id}')"><i data-lucide="pencil"></i></button>
+        ${isAdmin()?`<button class="iact danger" title="Xoá nhà" aria-label="Xoá" onclick="confirmDeleteHouse('${h.id}')"><i data-lucide="trash-2"></i></button>`:''}
+      </div>
+    </div>
+    <div class="srow-meta">${esc(roomSummary(h))}${(h.contractStart||h.contractEnd)?` · HĐ ${fmtMonthVi(h.contractStart)} – ${fmtMonthVi(h.contractEnd)}`:''}${imgHas(h.manager&&h.manager.signature)?' · <span style="color:var(--ok-ink)">đã ký QL</span>':''}</div>
+  </div>`).join(''):`<div class="empty"><div class="ic"><i data-lucide="house"></i></div>Chưa có nhà nào.</div>`;
   const lb=$('#lockList',c);
-  lb.innerHTML=!am?`<div class="muted">Hãy chọn tháng ở trên.</div>`
-    :(!houses.length?`<div class="muted">Chưa có nhà nào.</div>`
+  lb.innerHTML=!am?`<div class="hint" style="margin:0 2px">Hãy chọn tháng ở trên.</div>`
+    :(!houses.length?`<div class="hint" style="margin:0 2px">Chưa có nhà nào.</div>`
     :houses.map(h=>{const locked=(h.lockedMonths||[]).includes(am);
-      return `<div class="kv"><span class="k">${esc(h.name)}</span><span class="v">
-        ${locked?('<span class="badge danger">Đã khoá</span>'+(isAdmin()?' <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>':''))
-                :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
-      </span></div>`;}).join(''));
+      return `<div class="srow"><div class="srow-top">
+        <div class="srow-id"><div class="nm" style="font-size:16px">${esc(h.name)}</div>
+          <div class="ad">${locked?'Đã khoá — không sửa được thu chi':'Đang mở — vẫn nhập được thu chi'}</div></div>
+        <div class="srow-act">${locked
+          ?(isAdmin()?`<button class="iact ok" title="Mở khoá" aria-label="Mở khoá" onclick="unlockMonth('${h.id}')"><i data-lucide="lock-open"></i></button>`:'<span class="badge danger">Đã khoá</span>')
+          :`<button class="iact" title="Khoá tháng" aria-label="Khoá tháng" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i></button>`}</div>
+      </div></div>`;}).join(''));
 }
 /* Xem thông tin nhà (chỉ đọc) */
 function houseInfo(id){const h=STORE.house(id);if(!h)return;const mgr=h.manager||{};
@@ -1452,23 +1485,36 @@ function renderCashFlow(box){
   let rows;
   if(cf.length){
     const desc=cf.slice().reverse(); /* mới nhất -> cũ nhất */
-    rows=`<div class="tablewrap"><table class="cf-table">
-      <thead><tr><th>Tháng</th><th>Thu (₫)</th><th>Chi (₫)</th><th>Lợi nhuận</th></tr></thead>
-      <tbody>
-        <tr class="cf-total"><td>Tổng</td><td>${numVi(totRev)}</td><td>${numVi(totCost)}</td><td style="color:${totProfit>=0?'var(--ok-ink)':'var(--danger)'}">${numVi(totProfit)}</td></tr>
-        ${desc.map(r=>{const p=(Number(r.revenue)||0)-(Number(r.cost)||0);const open=(APP.cfOpen===r.id);
-          return `<tr class="finrow${open?' open':''}" onclick="setCfOpen('${r.id}')" style="cursor:pointer"><td>${esc(isoToMy(r.month))}</td><td>${numVi(r.revenue)}</td><td>${numVi(r.cost)}</td><td style="font-weight:600;color:${p>=0?'var(--ok-ink)':'var(--danger)'}">${numVi(p)}</td></tr>`+
-            (open?`<tr class="finact"><td colspan="4" style="padding-top:2px"><div style="display:flex;gap:8px;justify-content:flex-end">
-              <button class="btn sec sm" onclick="event.stopPropagation();cfForm('${r.id}')"><i data-lucide="pencil"></i> Sửa</button>
-              <button class="btn danger sm" onclick="event.stopPropagation();cfDelete('${r.id}')"><i data-lucide="trash-2"></i> Xoá</button></div></td></tr>`:'');}).join('')}
-      </tbody></table></div>`;
+    rows=`<div class="stat">
+        <div class="row1"><span class="lbl">Luỹ kế ${cf.length} tháng</span></div>
+        <div class="big ${totProfit>=0?'pos':'neg'}">${numVi(totProfit)}<span class="u">₫</span></div>
+        <div class="flow">
+          <div class="f in" title="Doanh thu"><span class="ic"><i data-lucide="arrow-down-left"></i></span><span class="n">${numVi(totRev)} ₫</span></div>
+          <div class="sep"></div>
+          <div class="f out" title="Chi phí"><span class="ic"><i data-lucide="arrow-up-right"></i></span><span class="n">${numVi(totCost)} ₫</span></div>
+        </div>
+      </div>
+      <div class="hlist">${desc.map(r=>{const p=(Number(r.revenue)||0)-(Number(r.cost)||0);const open=(APP.cfOpen===r.id);
+        return `<div class="srow" onclick="setCfOpen('${r.id}')" style="cursor:pointer">
+          <div class="srow-top">
+            <div class="srow-id"><div class="nm" style="font-size:16px">Tháng ${esc(isoToMy(r.month))}</div></div>
+            <div class="cfp ${p>=0?'pos':'neg'}">${p>=0?'+':'−'}${numVi(Math.abs(p))} ₫</div>
+          </div>
+          <div class="srow-meta" style="display:flex;gap:14px">
+            <span>Thu <b style="color:var(--text)">${numVi(r.revenue)}</b></span>
+            <span>Chi <b style="color:var(--text)">${numVi(r.cost)}</b></span>
+          </div>
+          ${open?`<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+            <button class="iact" title="Sửa tháng này" aria-label="Sửa" onclick="event.stopPropagation();cfForm('${r.id}')"><i data-lucide="pencil"></i></button>
+            <button class="iact danger" title="Xoá tháng này" aria-label="Xoá" onclick="event.stopPropagation();cfDelete('${r.id}')"><i data-lucide="trash-2"></i></button></div>`:''}
+        </div>`;}).join('')}</div>`;
   }else{
     rows=`<div class="empty"><div class="ic"><i data-lucide="trending-up"></i></div>Chưa có dữ liệu dòng tiền.<br>Bấm “Thêm tháng” hoặc “Tự động điền tháng đã chốt”.</div>`;
   }
   box.innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <button class="btn sm" onclick="cfForm()"><i data-lucide="plus"></i> Thêm tháng</button>
-      <button class="btn sm sec" onclick="cfAutoFill()"><i data-lucide="zap"></i> Tự động điền tháng đã chốt${lockedCount?` (${lockedCount})`:''}</button>
+      <button class="btn sm sec" onclick="cfAutoFill()"><i data-lucide="zap"></i> Điền tháng đã chốt${lockedCount?` (${lockedCount})`:''}</button>
     </div>
     ${cf.length?`<div class="card" style="margin-bottom:12px">
        <div style="font-weight:700;margin-bottom:8px">Lợi nhuận luỹ kế</div>
@@ -1535,7 +1581,10 @@ function profitChartSVG(cf){
   const poly=`<polyline fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${linePts}"/>`;
   const dots=data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.cum).toFixed(1)}" r="3.5" fill="#16a34a"/>`).join('');
   const step=Math.ceil(data.length/12);
-  const labels=data.map((d,i)=>(i%step===0||i===data.length-1)?`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="11" text-anchor="middle" fill="#64748b">${esc(d.m)}</text>`:'').join('');
+  const labels=data.map((d,i)=>{
+    if(!(i%step===0||i===data.length-1))return '';
+    const anc=i===0?'start':(i===data.length-1?'end':'middle');
+    return `<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="12" text-anchor="${anc}" fill="var(--muted)">${esc(d.m)}</text>`;}).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
     <line x1="${padL}" y1="${zeroY}" x2="${W-padR}" y2="${zeroY}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4"/>
     ${area}${poly}${dots}${labels}
@@ -2344,10 +2393,18 @@ function renderTabQuyetToan(c,h){
   const lockBadge=locked?`<span class="badge"><i data-lucide="lock"></i> Đã khoá</span>`:`<span class="badge danger">Chưa khoá</span>`;
   const partRows=parts.map(p=>{
     const pc=personColor(p.id);
-    const col=p.bal>0.5?'#b45309':(p.bal<-0.5?'#16a34a':'inherit');
-    return `<tr style="background:${pc.bg}"><td style="border-left:4px solid ${pc.bar}">${esc(p.name)}</td><td>${money(p.thu)}</td><td>${money(p.chi)}</td>
-      <td>${money(p.net)}</td><td>${money(Math.round(target))}</td>
-      <td style="color:${col};font-weight:600">${p.bal>0.5?'+':''}${money(Math.round(p.bal))}</td></tr>`;
+    const cls=p.bal>0.5?'warn':(p.bal<-0.5?'ok':'zero');
+    const sign=p.bal>0.5?'+':(p.bal<-0.5?'−':'');
+    return `<div class="prow" style="border-left:4px solid ${pc.bar}">
+      <div class="prow-top">
+        <span class="pnm">${ntAvatarHtml(p.name,null,28,p.id)}${esc(p.name)}</span>
+        <span class="pbal ${cls}">${sign}${numVi(Math.abs(Math.round(p.bal)))} ₫</span>
+      </div>
+      <div class="prow-kv">
+        <div><span>Thu</span><b>${numVi(p.thu)}</b></div>
+        <div><span>Chi</span><b>${numVi(p.chi)}</b></div>
+        <div><span>Lãi ròng</span><b>${numVi(p.net)}</b></div>
+      </div></div>`;
   }).join('');
   const nameCol={};parts.forEach(p=>{nameCol[p.name]=personColor(p.id).bar;});
   const txHTML=tx.length?tx.map(t=>`<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -2374,10 +2431,8 @@ function renderTabQuyetToan(c,h){
     </div>
     <div class="card" style="margin-bottom:12px">
       <div style="font-weight:700;margin-bottom:8px">Chi tiết theo người</div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Người</th><th>Thu</th><th>Chi</th><th>Lãi ròng</th><th>Phần chia</th><th>Chênh lệch</th></tr></thead>
-        <tbody>${partRows}</tbody></table></div>
-      <div class="hint" style="margin-top:6px">Chênh lệch <b style="color:#b45309">+</b> = đang giữ dư phần của mình → chuyển bớt cho người khác. <b style="color:#16a34a">−</b> = được nhận về.</div>
+      <div class="plist">${partRows}</div>
+      <div class="hint" style="margin-top:10px">Số bên phải là chênh lệch so với phần chia đều. <b style="color:var(--warn-ink)">+</b> đang giữ dư → chuyển bớt cho người khác. <b style="color:var(--ok-ink)">−</b> được nhận về.</div>
     </div>
     <div style="font-weight:700;margin:6px 0 8px">Bù trừ & chuyển tiền</div>
     ${txHTML}`;
@@ -2782,17 +2837,17 @@ function ntShowLogin(msg){
   let ov=document.getElementById('ntLogin');
   if(!ov){
     ov=document.createElement('div'); ov.id='ntLogin';
-    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#0d6efd;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
-      <div style="text-align:center;font-size:40px"><i data-lucide="house"></i></div>
-      <h2 style="text-align:center;margin:6px 0 2px">Nhà trọ Lý Sơn</h2>
-      <p style="text-align:center;color:#666;margin:0 0 18px;font-size:14px">Đăng nhập để tiếp tục</p>
-      <div style="margin-bottom:12px"><label style="font-size:13px;color:#444">Số điện thoại</label>
-        <input id="ntPhone" type="tel" inputmode="numeric" autocomplete="username" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:16px;margin-top:4px"></div>
-      <div style="margin-bottom:6px"><label style="font-size:13px;color:#444">Mật khẩu</label>
-        <input id="ntPass" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:16px;margin-top:4px"></div>
-      <div id="ntLoginMsg" style="color:#dc2626;font-size:13px;min-height:18px;margin:6px 0"></div>
-      <button id="ntLoginBtn" style="width:100%;padding:13px;background:#0d6efd;color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:600">Đăng nhập</button>
+    ov.className='loginwrap';
+    ov.innerHTML=`<div class="logincard">
+      <div class="mark lg"><i data-lucide="house"></i></div>
+      <h2>Nhà trọ Lý Sơn</h2>
+      <p class="sub">Đăng nhập để tiếp tục</p>
+      <div class="field"><label for="ntPhone">Số điện thoại</label>
+        <input id="ntPhone" type="tel" inputmode="numeric" autocomplete="username" placeholder="09xx xxx xxx"></div>
+      <div class="field" style="margin-bottom:4px"><label for="ntPass">Mật khẩu</label>
+        <input id="ntPass" type="password" autocomplete="current-password"></div>
+      <div id="ntLoginMsg" class="loginmsg"></div>
+      <button class="btn lg block" id="ntLoginBtn">Đăng nhập</button>
     </div>`;
     document.body.appendChild(ov);
     ov.querySelector('#ntLoginBtn').addEventListener('click',ntLogin);
