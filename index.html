@@ -18,8 +18,8 @@
 :root{
   --primary:#0d6efd; --primary-dark:#0a58ca; --primary-light:#e7f1ff;
   --ktx:#0ea5e9; --tro:#16a34a;
-  --bg:#f4f6fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
-  --border:#e5e7eb; --danger:#dc2626; --danger-light:#fee2e2;
+  --bg:#edf0f5; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+  --border:#d8dde5; --danger:#dc2626; --danger-light:#fee2e2;
   --warn:#d97706; --ok:#16a34a; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
   --radius:14px;
   /* Bảng màu tối giản dùng chung cho toàn app */
@@ -290,21 +290,26 @@ td{border-bottom:1px solid var(--line-soft)}
 .avatarbtn{background:none;border:none;padding:0;flex:0 0 auto;display:flex;border-radius:50%}
 .avatarbtn:active{transform:scale(.95)}
 
-.homehead{margin:-16px -16px 0}
-.monthbar{display:flex;align-items:baseline;gap:8px;padding:13px 16px 12px;background:var(--card);border-bottom:1px solid var(--border)}
-.monthbar .lbl{font-size:12px;color:#98a1af;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.monthbar .val{font-size:15px;font-weight:650}
-.monthbar .chg{margin-left:auto;background:none;border:none;padding:0;font-size:13px;font-weight:600;color:var(--primary)}
-.totals{display:flex;gap:16px;padding:18px 16px 14px}
-.totals .t{flex:1;min-width:0}
-.totals .k{font-size:12px;color:var(--muted);margin-bottom:3px}
-.totals .v{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.totals .v .u{font-size:14px;font-weight:600;color:var(--muted);margin-left:1px}
-.totals .sep{width:1px;background:var(--border);flex:0 0 auto}
-.totals .hint2{padding:16px;font-size:13px;color:var(--muted)}
+/* Thẻ dashboard canh giữa: tháng bấm được để đổi */
+.stat.center{text-align:center}
+.stat.center .big{margin-top:2px}
+.statmonth{background:none;border:none;padding:2px 4px;font:inherit;font-size:12px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:inline-flex;align-items:center;gap:5px;border-radius:8px}
+.statmonth .m{color:var(--primary)}
+.statmonth svg.lucide{width:14px;height:14px;color:var(--primary)}
+.statmonth:active{background:var(--surface-2)}
+/* Tiền vào / tiền ra: mũi tên + màu, không cần chữ */
+.flow{display:flex;gap:12px;margin-top:13px;padding-top:13px;border-top:1px solid var(--line-soft)}
+.flow .f{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
+.flow .f .ic{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.flow .f .ic svg.lucide{width:15px;height:15px;stroke-width:2.5}
+.flow .in .ic{background:var(--ok-soft);color:var(--ok-ink)}
+.flow .out .ic{background:var(--danger-light);color:var(--danger)}
+.flow .n{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.flow .sep{width:1px;background:var(--line-soft);flex:0 0 auto}
 
 .hlist{display:flex;flex-direction:column;gap:10px}
-.hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
+.hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid #cfd6e0;border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
 .hitem:active{transform:scale(.995)}
 .hitem .top{display:flex;align-items:flex-start;gap:10px}
 .hitem .id{flex:1;min-width:0}
@@ -1068,26 +1073,21 @@ function renderEntry(c){
   const profit=sRev-sCost;
   const pctAll=sTot?Math.round(sPaid/sTot*100):0;
   const board=am
-    ? `<div class="stat">
-         <div class="row1"><span class="lbl">Lợi nhuận tháng ${esc(isoToMy(am))}</span></div>
+    ? `<div class="stat center">
+         <button class="statmonth" onclick="goSystem()" aria-label="Đổi tháng thao tác">Lợi nhuận tháng <span class="m">${esc(isoToMy(am))}</span><i data-lucide="chevron-down"></i></button>
          <div class="big ${profit>=0?'pos':'neg'}">${numVi(profit)}<span class="u">₫</span></div>
-         <div class="split">
-           <div class="s"><div class="k">Doanh thu</div><div class="v">${numVi(sRev)} ₫</div></div>
+         <div class="flow">
+           <div class="f in" title="Doanh thu"><span class="ic"><i data-lucide="arrow-down-left"></i></span><span class="n">${numVi(sRev)} ₫</span></div>
            <div class="sep"></div>
-           <div class="s"><div class="k">Chi phí</div><div class="v">${numVi(sCost)} ₫</div></div>
+           <div class="f out" title="Chi phí"><span class="ic"><i data-lucide="arrow-up-right"></i></span><span class="n">${numVi(sCost)} ₫</span></div>
          </div>
          ${sTot?`<div class="prog"><div class="t">Tiến độ thu<b>${sPaid}/${sTot}</b></div>
             <div class="hbar${sPaid>=sTot?' done':''}" style="margin-top:0"><span style="width:${pctAll}%"></span></div></div>`:''}
        </div>`
-    : `<div class="stat"><div class="row1"><span class="lbl">Chưa chọn tháng</span></div>
-         <div class="muted" style="font-size:13.5px">Chọn tháng thao tác để xem doanh thu, chi phí và tiến độ thu.</div></div>`;
-  c.innerHTML=`<div class="homehead">
-      <div class="monthbar"><span class="lbl">Tháng thao tác</span>
-        <span class="val">${am?esc(isoToMy(am)):'Chưa chọn'}</span>
-        <button class="chg" onclick="goSystem()">${am?'Đổi tháng':'Chọn tháng'}</button></div>
-    </div>
-    <div style="height:14px"></div>
-    ${board}
+    : `<div class="stat center">
+         <button class="statmonth" onclick="goSystem()">Chọn tháng thao tác<i data-lucide="chevron-down"></i></button>
+         <div class="muted" style="font-size:13.5px;margin-top:6px">Chọn tháng để xem doanh thu, chi phí và tiến độ thu.</div></div>`;
+  c.innerHTML=`${board}
     <div class="sectitle">Nhà đang quản lý</div>
     <div id="houseList" class="hlist"></div>`;
   const list=$('#houseList',c);
