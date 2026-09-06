@@ -363,17 +363,16 @@ td{border-bottom:1px solid var(--line-soft)}
 .hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid #cfd6e0;border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
 .hitem:active{transform:scale(.995)}
 .hitem .nm{font-size:20px;font-weight:650;letter-spacing:-.015em;text-align:center;line-height:1.25}
-.hitem .mid{display:flex;align-items:baseline;gap:8px;margin-top:14px}
-.hitem .money{font-size:19px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.hitem .money .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
-.hpill{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:#fdf3e4;color:#b45309}
-.hpill.done{background:#e6f5ee;color:#12855b}
+.hitem .hrooms{text-align:center;font-size:13px;color:var(--muted);margin-top:3px}
+.hitem .flow{margin-top:12px;padding-top:12px}
+.hitem .flow .n{font-size:16px}
+.hpill{margin-left:auto;flex:0 0 auto;font-size:12.5px;font-weight:650;padding:3px 10px;border-radius:999px;background:var(--warn-soft);color:var(--warn-ink)}
+.hpill.done{background:var(--ok-soft);color:var(--ok-ink)}
 .hpill.none{background:#f0f2f5;color:var(--muted)}
 .hbar{height:4px;border-radius:2px;background:var(--line-soft);margin-top:10px;overflow:hidden}
 .hbar>span{display:block;height:100%;border-radius:2px;background:var(--primary)}
 .hbar.done>span{background:#12855b}
 .hfoot{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.hfoot .rooms{margin-left:auto;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -1148,10 +1147,14 @@ function renderEntry(c){
               :`<span class="hpill">Còn ${x.total-x.paid} chưa đóng</span>`));
       return `<button class="hitem" type="button" onclick="enterHouse('${h.id}')">
         <div class="nm">${esc(h.name)}</div>
-        <div class="mid"><span class="money">${numVi(x.revenue)}<span class="u">₫</span></span>${pill}</div>
+        <div class="hrooms">${esc(roomSummary(h))}</div>
+        <div class="flow">
+          <div class="f in" title="Doanh thu"><span class="ic"><i data-lucide="arrow-down-left"></i></span><span class="n">${numVi(x.revenue)} ₫</span></div>
+          <div class="sep"></div>
+          <div class="f out" title="Chi phí"><span class="ic"><i data-lucide="arrow-up-right"></i></span><span class="n">${numVi(x.cost)} ₫</span></div>
+        </div>
         <div class="hbar${done?' done':''}"><span style="width:${pct}%"></span></div>
-        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}</span>
-          <span class="rooms">${esc(roomSummary(h))}</span></div>
+        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}</span>${pill}</div>
       </button>`;}).join('');
   }
 }
