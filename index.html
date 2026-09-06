@@ -311,13 +311,8 @@ td{border-bottom:1px solid var(--line-soft)}
 .hlist{display:flex;flex-direction:column;gap:10px}
 .hitem{display:block;width:100%;text-align:left;background:var(--card);border:1px solid #cfd6e0;border-radius:16px;padding:14px 14px 13px;font:inherit;color:inherit}
 .hitem:active{transform:scale(.995)}
-.hitem .top{display:flex;align-items:flex-start;gap:10px}
-.hitem .id{flex:1;min-width:0}
-.hitem .nm{font-size:17px;font-weight:650;letter-spacing:-.01em}
-.hitem .ad{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hitem .cv{color:#98a1af;flex:0 0 auto;margin-top:3px}
-.hitem .cv svg.lucide{width:18px;height:18px}
-.hitem .mid{display:flex;align-items:baseline;gap:8px;margin-top:12px}
+.hitem .nm{font-size:20px;font-weight:650;letter-spacing:-.015em;text-align:center;line-height:1.25}
+.hitem .mid{display:flex;align-items:baseline;gap:8px;margin-top:14px}
 .hitem .money{font-size:19px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .hitem .money .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
 .hpill{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:#fdf3e4;color:#b45309}
@@ -1071,7 +1066,6 @@ function renderEntry(c){
   const st={};let sRev=0,sCost=0,sPaid=0,sTot=0;
   houses.forEach(h=>{const x=houseStats(h,am);st[h.id]=x;sRev+=x.revenue;sCost+=x.cost;sPaid+=x.paid;sTot+=x.total;});
   const profit=sRev-sCost;
-  const pctAll=sTot?Math.round(sPaid/sTot*100):0;
   const board=am
     ? `<div class="stat center">
          <button class="statmonth" onclick="goSystem()" aria-label="Đổi tháng thao tác">Lợi nhuận tháng <span class="m">${esc(isoToMy(am))}</span><i data-lucide="chevron-down"></i></button>
@@ -1081,8 +1075,6 @@ function renderEntry(c){
            <div class="sep"></div>
            <div class="f out" title="Chi phí"><span class="ic"><i data-lucide="arrow-up-right"></i></span><span class="n">${numVi(sCost)} ₫</span></div>
          </div>
-         ${sTot?`<div class="prog"><div class="t">Tiến độ thu<b>${sPaid}/${sTot}</b></div>
-            <div class="hbar${sPaid>=sTot?' done':''}" style="margin-top:0"><span style="width:${pctAll}%"></span></div></div>`:''}
        </div>`
     : `<div class="stat center">
          <button class="statmonth" onclick="goSystem()">Chọn tháng thao tác<i data-lucide="chevron-down"></i></button>
@@ -1104,13 +1096,10 @@ function renderEntry(c){
         :(done?'<span class="hpill done">Đã thu đủ</span>'
               :`<span class="hpill">Còn ${x.total-x.paid} chưa đóng</span>`));
       return `<button class="hitem" type="button" onclick="enterHouse('${h.id}')">
-        <div class="top">
-          <div class="id"><div class="nm">${esc(h.name)}</div><div class="ad">${esc(h.address||'—')}</div></div>
-          <span class="cv"><i data-lucide="chevron-right"></i></span>
-        </div>
+        <div class="nm">${esc(h.name)}</div>
         <div class="mid"><span class="money">${numVi(x.revenue)}<span class="u">₫</span></span>${pill}</div>
         <div class="hbar${done?' done':''}"><span style="width:${pct}%"></span></div>
-        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}${x.cost?' · chi '+numVi(x.cost)+' ₫':''}</span>
+        <div class="hfoot"><span>${am&&x.total?('Đã thu '+x.paid+'/'+x.total):'—'}</span>
           <span class="rooms">${esc(roomSummary(h))}</span></div>
       </button>`;}).join('');
   }
