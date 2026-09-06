@@ -346,7 +346,8 @@ async function storeImage(obj,dataUrl){
   catch(e){obj.data=dataUrl;/* dự phòng khi trình duyệt chặn IndexedDB */}
   // Tải ảnh lên Supabase Storage để mọi thiết bị xem được
   try{ if(NT.user){ const u=await ntUploadDataUrl('uploads/'+obj.imgId, dataUrl); if(u)obj.url=u; } }
-  catch(e){ console.warn('Upload ảnh lỗi (sẽ dùng bản trong máy):',e); }
+  catch(e){ console.warn('Upload ảnh lỗi (sẽ tự gửi lại khi đồng bộ):',e);
+    toast('Ảnh chưa lên được máy chủ — sẽ tự gửi lại khi có mạng','err'); }
 }
 function idbGet(imgId){return new Promise(res=>{if(!IDB||!imgId)return res(null);
   try{const t=IDB.transaction('images','readonly');const rq=t.objectStore('images').get(imgId);rq.onsuccess=()=>res(rq.result?rq.result.data:null);rq.onerror=()=>res(null);}catch(e){res(null);}});}
@@ -994,7 +995,7 @@ function renderSystem(c){const houses=STORE.houses();const am=STORE.activeMonth(
     :(!houses.length?`<div class="muted">Chưa có nhà nào.</div>`
     :houses.map(h=>{const locked=(h.lockedMonths||[]).includes(am);
       return `<div class="kv"><span class="k">${esc(h.name)}</span><span class="v">
-        ${locked?'<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>'
+        ${locked?('<span class="badge danger">Đã khoá</span>'+(isAdmin()?' <button class="btn ok sm" onclick="unlockMonth(\''+h.id+'\')"><i data-lucide="lock-open"></i> Mở khoá</button>':''))
                 :'<span class="badge ok">Đang mở</span> <button class="btn sec sm" onclick="lockMonth(\''+h.id+'\')"><i data-lucide="lock"></i> Khoá</button>'}
       </span></div>`;}).join(''));
 }
@@ -1154,17 +1155,39 @@ function openContractClauses(){
     onMount:()=>{renderDieu('dieu4');renderDieu('dieu5');renderDieu('dieu6');}});
 }
 /* Lưu ngay từng phần (nếu nhà đã tồn tại thì ghi lên Supabase; nhà mới thì giữ bản nháp) */
-function commitHouseSection(patch){
+function commitHouseSection(patch,removedRoomIds){
   const id=window._houseDraft&&window._houseDraft.id;
-  if(id&&STORE.house(id)){ STORE.updateHouse(id,patch); const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;enqueueOp({entity:'house',type:'upsert',house:_hm}); toast('Đã lưu','ok'); }
+  if(id&&STORE.house(id)){ STORE.updateHouse(id,patch); const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;
+    const _op={entity:'house',type:'upsert',house:_hm};
+    if((removedRoomIds||[]).length)_op.removedRoomIds=removedRoomIds;
+    enqueueOp(_op); toast('Đã lưu','ok'); }
   else { Object.assign(window._houseDraft,patch); toast('Đã lưu tạm — bấm "Tạo nhà" để hoàn tất','ok'); }
+}
+/* Phòng có trong bản đã lưu nhưng không còn trong danh sách mới = người dùng chủ động xoá */
+function removedRooms(houseId,rooms){
+  const prev=((STORE.house(houseId)||{}).rooms)||[];
+  const keep=new Set(rooms.map(r=>r.id));
+  return prev.map(r=>r.id).filter(id=>!keep.has(id));
+}
+/* Không cho xoá phòng đang có hợp đồng còn hiệu lực (tránh mất luôn hợp đồng theo phòng) */
+function guardRoomRemoval(houseId,removed){
+  if(!removed.length)return true;
+  const h=STORE.house(houseId); if(!h)return true;
+  const busy=removed.filter(rid=>(h.contracts||[]).some(c=>!isEnded(c)&&c.roomId===rid));
+  if(!busy.length)return true;
+  const names=busy.map(rid=>{const r=(h.rooms||[]).find(x=>x.id===rid);return r?r.name:rid;}).join(', ');
+  toast('Phòng '+names+' đang có hợp đồng — kết thúc hoặc xoá hợp đồng trước','err');
+  return false;
 }
 function saveRoomsSection(){
   syncRoomDom();
   const rooms=(window._roomDraft||[]).filter(r=>(r.name||'').trim()).map(r=>({id:r.id||uid(),name:r.name.trim(),type:r.type,
     maxPeople:(r.maxPeople||'').toString().trim(),
     equipment:(r.equipment||[]).filter(e=>e&&(e.name||'').trim()).map(e=>({name:e.name.trim(),condition:(e.condition||'').trim()}))}));
-  commitHouseSection({rooms}); closeModal2();
+  const hid=window._houseDraft&&window._houseDraft.id;
+  const removed=hid?removedRooms(hid,rooms):[];
+  if(!guardRoomRemoval(hid,removed))return;
+  commitHouseSection({rooms},removed); closeModal2();
 }
 function saveExpenseSection(){
   syncExpDom();
@@ -1191,10 +1214,14 @@ function saveHouseForm(id,editing){
     manager:{name:$('#f_mgr').value.trim(),birthYear:$('#f_mgryob').value.trim(),signature:window._houseDraft.manager.signature},
     contractStart:cs,contractEnd:ce,
     dieu4:cleanDieu(window._houseDraft.dieu4),dieu5:cleanDieu(window._houseDraft.dieu5),dieu6:cleanDieu(window._houseDraft.dieu6),expenseItems};
+  const removed=editing?removedRooms(id,rooms):[];
+  if(editing&&!guardRoomRemoval(id,removed))return;
   if(editing){STORE.updateHouse(id,patch);toast('Đã lưu thay đổi','ok');}
   else{STORE.addHouse({id,...patch,contracts:[]});toast('Đã tạo nhà','ok');}
   const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;
-  enqueueOp({entity:'house',type:'upsert',house:_hm});
+  const _op={entity:'house',type:'upsert',house:_hm};
+  if(removed.length)_op.removedRoomIds=removed;
+  enqueueOp(_op);
   closeModal();renderSystem($('#content'));
 }
 
@@ -1648,10 +1675,26 @@ function saveContract(type,editing){
 function pushSettings(){enqueueOp({entity:'settings',type:'set',activeMonth:STORE.activeMonth()});}
 function saveActiveMonth(){const m=myToIso($('#amInput').value);if(m===null){toast('Tháng/năm không hợp lệ (MM/YYYY)','err');return;}
   STORE.setActiveMonth(m);pushSettings();toast('Đã đặt tháng thao tác','ok');render();}
+/* ----- Khoá tháng: chốt chặn dùng chung cho mọi thao tác thu/chi ----- */
+function isMonthLocked(h,month){return !!(h&&month&&(h.lockedMonths||[]).includes(month));}
+function isAdmin(){return !!(NT.user&&NT.user.role==='admin');}
+/* Trả về true nếu BỊ CHẶN (đã khoá) — kèm thông báo cho người dùng */
+function blockIfLocked(h,month){
+  if(!isMonthLocked(h,month))return false;
+  toast('Tháng '+isoToMy(month)+' đã khoá — mở khoá trước khi sửa','err');
+  try{render();}catch(e){}   /* màn hình có thể đang cũ -> vẽ lại cho đúng */
+  return true;
+}
 function lockMonth(id){const h=STORE.house(id);h.lockedMonths=h.lockedMonths||[];const am=STORE.activeMonth();
-  if(!h.lockedMonths.includes(am))h.lockedMonths.push(am);STORE.save();enqueueHouseUpsert(id);toast('Đã khoá tháng','ok');render();}
-function unlockMonth(id){const h=STORE.house(id);requirePassword(h,'Mở khoá tháng',()=>{const am=STORE.activeMonth();
-  h.lockedMonths=(h.lockedMonths||[]).filter(m=>m!==am);STORE.save();enqueueHouseUpsert(id);toast('Đã mở khoá','ok');render();});}
+  if(!am){toast('Chưa chọn tháng thao tác','err');return;}
+  if(!h.lockedMonths.includes(am)){h.lockedMonths.push(am);STORE.save();enqueueOp({entity:'lock',type:'add',houseId:id,month:am});}
+  toast('Đã khoá tháng','ok');render();}
+function unlockMonth(id){
+  if(!isAdmin()){toast('Chỉ admin mới được mở khoá tháng','err');return;}
+  const h=STORE.house(id);const am=STORE.activeMonth();
+  if(!(h.lockedMonths||[]).includes(am)){toast('Tháng này chưa khoá','err');return;}
+  h.lockedMonths=(h.lockedMonths||[]).filter(m=>m!==am);STORE.save();
+  enqueueOp({entity:'lock',type:'remove',houseId:id,month:am});toast('Đã mở khoá','ok');render();}
 function enqueueHouseUpsert(id){const _hm=JSON.parse(JSON.stringify(STORE.house(id)));delete _hm.contracts;enqueueOp({entity:'house',type:'upsert',house:_hm});}
 
 /* ----- Danh sách đối tượng để chọn (KTX: khách; phòng trọ: phòng) ----- */
@@ -1737,7 +1780,7 @@ function renderFinanceTab(c,h,kind){
       <div><div style="font-weight:700">${title} · tháng ${esc(isoToMy(am))}</div>
         <div class="muted" style="font-size:13px">Tổng: <b>${money(total)}</b> · ${list.length} khoản</div>
         ${fp?`<div style="margin-top:6px"><span class="badge ok">Lọc: ${esc(fp)}</span> <button class="linkbtn" onclick="clearFinFilter()">✕ Bỏ lọc</button></div>`:''}</div>
-      <div>${locked?`<span class="badge danger">Đã khoá</span> <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`
+      <div>${locked?`<span class="badge danger">Đã khoá</span>${isAdmin()?` <button class="btn ok sm" onclick="unlockMonthThenRender('${h.id}')"><i data-lucide="lock-open"></i> Mở khoá</button>`:''}`
                     :`<button class="btn sm" onclick="lockMonth('${h.id}')"><i data-lucide="lock"></i> Khoá tháng</button>`}</div>
     </div>
     ${chuaDong}
@@ -1763,7 +1806,9 @@ function setFinOpen(id){APP.finOpen=(APP.finOpen===id?'':id);render();}
 function financeForm(kind,id){
   const h=STORE.house(APP.houseId);const am=STORE.activeMonth();
   if(!getCurUser()){toast('Chưa xác định người dùng — hãy đăng nhập lại','err');return;}
-  const editing=!!id;const e=editing?JSON.parse(JSON.stringify((h.finance||[]).find(x=>x.id===id))):{id:uid(),kind,month:am,targetKey:'',label:'',amount:'',note:''};
+  const _old=id?(h.finance||[]).find(x=>x.id===id):null;
+  if(blockIfLocked(h,_old?_old.month:am))return;
+  const editing=!!id;const e=editing?JSON.parse(JSON.stringify(_old)):{id:uid(),kind,month:am,targetKey:'',label:'',amount:'',note:''};
   const title=kind==='thu'?'doanh thu':'chi phí';
   let body;
   if(kind==='chi'){
@@ -1904,6 +1949,8 @@ function troResultHTML(b,total){
 function troNoteText(b){if(!b)return '';return `Phòng ${money(b.room)} + Điện ${b.kwh||0}kWh ${money(b.elec)} + Nước ${money(b.water)} + DV ${money(b.service)} + Xe ${money(b.vehicle)}`;}
 function saveFinance(kind,id,editing){
   const h=STORE.house(APP.houseId);const am=STORE.activeMonth();
+  const _old=editing?(h.finance||[]).find(x=>x.id===id):null;
+  if(blockIfLocked(h,am)||(_old&&blockIfLocked(h,_old.month))){closeModal();return;}
   const amount=($('#fAmount').value||'').replace(/[^\d]/g,'');if(!amount){toast('Nhập số tiền','err');return;}
   let entry;
   if(kind==='chi'){
@@ -1933,11 +1980,14 @@ function saveFinance(kind,id,editing){
   STORE.save();enqueueOp({entity:'finance',type:'upsert',houseId:h.id,entry:JSON.parse(JSON.stringify(entry))});closeModal();toast('Đã lưu','ok');render();
 }
 function deleteFinance(id){const h=STORE.house(APP.houseId);const e=(h.finance||[]).find(x=>x.id===id);
+  if(blockIfLocked(h,e?e.month:STORE.activeMonth()))return;
   const nm=e?(e.label||''):'';const amt=e?money(e.amount):'';
   openModal({title:'Xoá khoản',
     bodyHTML:`<p style="margin:0">Bạn có chắc chắn xoá khoản${nm?' <b>'+esc(nm)+'</b>':''}${amt?' ('+amt+')':''} không?<br><span class="muted" style="font-size:13px">Thao tác này không thể hoàn tác.</span></p>`,
     footHTML:`<button class="btn sec" onclick="closeModal()">↩︎ Hoàn tác</button><button class="btn danger" onclick="doDeleteFinance('${id}')"><i data-lucide="trash-2"></i> Chắc chắn xoá</button>`});}
-function doDeleteFinance(id){const h=STORE.house(APP.houseId);h.finance=(h.finance||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'finance',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá','ok');render();}
+function doDeleteFinance(id){const h=STORE.house(APP.houseId);const _e=(h.finance||[]).find(x=>x.id===id);
+  if(blockIfLocked(h,_e?_e.month:STORE.activeMonth())){closeModal();return;}
+  h.finance=(h.finance||[]).filter(x=>x.id!==id);STORE.save();enqueueOp({entity:'finance',type:'delete',houseId:h.id,id});closeModal();toast('Đã xoá','ok');render();}
 /* Xem ghi chú đầy đủ của một khoản doanh thu (nút "Xem" ở cột Ghi chú) */
 function viewNote(id){const h=STORE.house(APP.houseId);const e=(h.finance||[]).find(x=>x.id===id);if(!e)return;
   openModal({title:'Ghi chú',
@@ -2369,6 +2419,41 @@ function collectOpImages(op,images){
   if(op.contract)ct(op.contract);
   if(op.data)(op.data.houses||[]).forEach(h=>{if(h.manager&&h.manager.signature)walk(h.manager.signature);(h.contracts||[]).forEach(ct);});
 }
+/* Ghi lại đường dẫn ảnh vào bản đang lưu trong máy (để lần sau không phải tải lên nữa) */
+function ntSetImgUrl(imgId,url){
+  const w=o=>{if(o&&o.imgId===imgId&&!o.url)o.url=url;};
+  (STORE.houses()||[]).forEach(h=>{
+    if(h.manager)w(h.manager.signature);
+    (h.contracts||[]).forEach(c=>{ w(c.managerSignature);
+      if(c.type==='KTX'){ if(c.customer)['cccdPhoto','customerPhoto','signature'].forEach(k=>w(c.customer[k])); }
+      else (c.customers||[]).forEach(x=>['cccdPhoto','customerPhoto','signature'].forEach(k=>w(x[k])));});});
+  _suppressAuto=true;STORE.save();_suppressAuto=false;
+}
+/* Trước khi ghi bản ghi lên máy chủ: ảnh nào chưa có đường dẫn thì tải lên trước.
+   Còn dữ liệu ảnh trong máy mà tải vẫn lỗi -> ném lỗi để giữ trong hàng đợi và thử lại,
+   KHÔNG ghi đè bằng đường dẫn rỗng (đó là nguyên nhân làm mất ảnh). */
+async function ntEnsureOpImages(op){
+  const imgs=[];
+  const add=o=>{if(o&&o.imgId&&!o.url)imgs.push(o);};
+  const ct=c=>{if(!c)return; add(c.managerSignature);
+    if(c.type==='KTX'){ if(c.customer)['cccdPhoto','customerPhoto','signature'].forEach(k=>add(c.customer[k])); }
+    else (c.customers||[]).forEach(x=>['cccdPhoto','customerPhoto','signature'].forEach(k=>add(x[k])));};
+  if(op.house){ add(op.house.manager&&op.house.manager.signature); (op.house.contracts||[]).forEach(ct); }
+  if(op.contract)ct(op.contract);
+  if(!imgs.length)return;
+  let pending=0;
+  for(const o of imgs){
+    let d=IMGCACHE[o.imgId]||o.data||null;
+    if(!d){ try{ d=await idbGet(o.imgId); }catch(e){} }
+    if(!d)continue;                       /* không còn dữ liệu ảnh -> đành chịu, không chặn hàng đợi */
+    try{
+      const u=await ntUploadDataUrl('uploads/'+o.imgId,d);
+      if(u){ o.url=u; ntSetImgUrl(o.imgId,u); } else pending++;
+    }catch(e){ console.warn('Gửi lại ảnh lỗi:',o.imgId,e); pending++; }
+  }
+  if(pending)throw new Error(pending+' ảnh chưa gửi được lên máy chủ');
+}
+const IMG_MAX_TRIES=5;
 async function flushOutbox(){
   if(!effectiveUrl()||_syncing)return;
   if(!getOutbox().length)return;
@@ -2378,6 +2463,21 @@ async function flushOutbox(){
       const q=getOutbox();
       if(!q.length)break;
       const op=q[0];
+      /* Bước 1: đảm bảo ảnh đã lên máy chủ (giữ hàng đợi lại nếu chưa) */
+      try{ await ntEnsureOpImages(op); }
+      catch(e){
+        op._imgTries=(op._imgTries||0)+1;
+        const q3=getOutbox(); if(q3.length){ q3[0]=op; setOutbox(q3); }
+        if(op._imgTries<IMG_MAX_TRIES){
+          console.warn('Ảnh chưa gửi được, sẽ thử lại:',e);
+          toast('Ảnh chưa lên được máy chủ — sẽ thử lại','err');
+          break;
+        }
+        /* Thử quá nhiều lần -> chấp nhận ghi thiếu ảnh, còn hơn kẹt toàn bộ đồng bộ */
+        console.warn('Bỏ qua ảnh sau '+IMG_MAX_TRIES+' lần thử:',e);
+        toast('Có ảnh không gửi được lên máy chủ — hãy chụp lại ảnh đó','err');
+      }
+      /* Bước 2: ghi bản ghi */
       try{ await ntApplyOp(op); }
       catch(e){ console.error('Đồng bộ lỗi, sẽ thử lại sau:',op,e); toast('Chưa đồng bộ được — sẽ thử lại','err'); break; }
       const q2=getOutbox(); q2.shift(); setOutbox(q2);
@@ -2607,6 +2707,7 @@ async function ntPullAll(){
     });
     const fins=(F[h.id]||[]).map(f=>({id:f.id,kind:f.kind,month:f.month||'',targetType:f.target_type||'',targetKey:f.target_key||'',
        label:f.label||'',amount:f.amount==null?'':String(f.amount),note:f.note||'',userName:f.user_name||'',userId:f.created_by||'',
+       breakdown:f.breakdown||null,
        ts:f.created_at?new Date(f.created_at).getTime():Date.now()}));
     const devs=(D[h.id]||[]).map(d=>({id:d.id,name:d.name||'',info:d.info||'',cycleMonths:d.cycle_months||'',
        logs:(L[d.id]||[]).map(l=>({id:l.id,content:l.content||'',ts:l.log_date||'',cost:l.cost==null?'':String(l.cost),note:l.note||'',userName:l.user_name||'',tsEntered:l.created_at?new Date(l.created_at).getTime():Date.now()})).sort((a,b)=>(a.tsEntered||0)-(b.tsEntered||0))}));
@@ -2637,13 +2738,12 @@ async function ntApplyOp(op){
     let r=await SB.from('nt_houses').upsert({id:h.id,name:h.name||null,address:h.address||null,manager_name:m.name||null,manager_birth_year:m.birthYear||null,
       manager_signature_url:(m.signature||{}).url||null,contract_start:h.contractStart||null,contract_end:h.contractEnd||null,
       clauses:{dieu4:h.dieu4||[],dieu5:h.dieu5||[],dieu6:h.dieu6||[]},cashflow:h.cashflow||[],expense_items:h.expenseItems||[],created_by:me}); if(r.error)throw r.error;
-    const keep=new Set((h.rooms||[]).map(x=>x.id));
-    const ex=await SB.from('nt_rooms').select('id').eq('house_id',h.id); if(ex.error)throw ex.error;
-    const del=(ex.data||[]).map(x=>x.id).filter(id=>!keep.has(id));
-    if(del.length){ r=await SB.from('nt_rooms').delete().in('id',del); if(r.error)throw r.error; }
+    /* CHỈ xoá những phòng người dùng chủ động xoá ở máy này.
+       Trước đây xoá mọi phòng không có trong danh sách -> máy có dữ liệu cũ sẽ xoá phòng người khác vừa thêm. */
+    const rmRooms=(op.removedRoomIds||[]).filter(Boolean);
+    if(rmRooms.length){ r=await SB.from('nt_rooms').delete().in('id',rmRooms); if(r.error)throw r.error; }
     if((h.rooms||[]).length){ r=await SB.from('nt_rooms').upsert(h.rooms.map(x=>({id:x.id,house_id:h.id,name:x.name||null,type:x.type||null,max_people:x.maxPeople||null,equipment:x.equipment||[]}))); if(r.error)throw r.error; }
-    r=await SB.from('nt_locked_months').delete().eq('house_id',h.id); if(r.error)throw r.error;
-    if((h.lockedMonths||[]).length){ r=await SB.from('nt_locked_months').insert(h.lockedMonths.map(mo=>({house_id:h.id,month:mo}))); if(r.error)throw r.error; }
+    /* Tháng khoá KHÔNG còn ghi ở đây — đã tách thành thao tác riêng (entity:'lock') */
     await ntLog('update','house',h.id,h.id,'Cập nhật nhà '+(h.name||''));
   }
   else if(op.entity==='house'&&op.type==='delete'){
@@ -2671,7 +2771,14 @@ async function ntApplyOp(op){
     const row={id:e.id,house_id:hid,kind:e.kind,month:e.month||null,target_type:e.targetType||null,target_key:e.targetKey||null,
       label:e.label||null,amount:numOrNull(e.amount),note:e.note||null,user_name:e.userName||null,created_by:me};
     if(e.ts)row.created_at=new Date(Number(e.ts)).toISOString();
-    const r=await SB.from('nt_finance').upsert(row); if(r.error)throw r.error;
+    if(e.breakdown)row.breakdown=e.breakdown;   /* chi tiết tính tiền phòng trọ (số điện, số người…) */
+    let r=await SB.from('nt_finance').upsert(row);
+    /* Máy chủ chưa có cột breakdown -> gửi lại bản không kèm, để không kẹt hàng đợi */
+    if(r.error&&row.breakdown&&/breakdown/i.test(r.error.message||'')){
+      console.warn('nt_finance chưa có cột breakdown — bỏ qua chi tiết. Hãy chạy: alter table nt_finance add column if not exists breakdown jsonb;');
+      delete row.breakdown; r=await SB.from('nt_finance').upsert(row);
+    }
+    if(r.error)throw r.error;
     await ntLog('update','finance',e.id,hid,(e.kind==='chi'?'Chi: ':'Thu: ')+(e.label||''));
   }
   else if(op.entity==='finance'&&op.type==='delete'){
@@ -2688,6 +2795,16 @@ async function ntApplyOp(op){
   else if(op.entity==='device'&&op.type==='delete'){
     const r=await SB.from('nt_devices').delete().eq('id',op.id); if(r.error)throw r.error;
     await ntLog('delete','device',op.id,op.houseId,'Xoá thiết bị');
+  }
+  else if(op.entity==='lock'){
+    if(op.type==='add'){
+      const ex=await SB.from('nt_locked_months').select('month').eq('house_id',op.houseId).eq('month',op.month).limit(1);
+      if(ex.error)throw ex.error;
+      if(!(ex.data||[]).length){ const r=await SB.from('nt_locked_months').insert({house_id:op.houseId,month:op.month}); if(r.error)throw r.error; }
+    }else{
+      const r=await SB.from('nt_locked_months').delete().eq('house_id',op.houseId).eq('month',op.month); if(r.error)throw r.error;
+    }
+    await ntLog('update','house',op.houseId,op.houseId,(op.type==='add'?'Khoá tháng ':'Mở khoá tháng ')+isoToMy(op.month));
   }
   else if(op.entity==='settings'&&op.type==='set'){
     if(typeof op.activeMonth==='string'){ const r=await SB.from('nt_settings').upsert({key:'activeMonth',value:op.activeMonth}); if(r.error)throw r.error; }
