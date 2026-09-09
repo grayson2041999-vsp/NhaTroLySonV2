@@ -305,6 +305,9 @@ td{border-bottom:1px solid var(--line-soft)}
 .avatarbtn:active{transform:scale(.95)}
 
 /* Nhắc khi số tiền nhập khác kết quả tự động */
+.searchrow{display:flex;gap:9px;align-items:stretch;margin-bottom:12px}
+.iact.excel{background:var(--ok-soft);color:var(--ok-ink);width:48px;height:auto;align-self:stretch}
+.iact.excel svg.lucide{width:21px;height:21px}
 .manualwarn{margin-top:10px;background:var(--warn-soft);border:1px solid #f0dcb8;border-radius:12px;
   padding:11px 13px;font-size:13px;line-height:1.55;color:var(--warn-ink)}
 
@@ -1661,7 +1664,10 @@ function renderVehicles(box){
 /* ---------- TAB HỢP ĐỒNG ---------- */
 function renderTabHopDong(c,h){
   c.innerHTML=`
-    <div class="field" style="margin-bottom:12px"><input id="hdSearch" placeholder="Tìm theo tên · CCCD · SĐT" value="${esc(APP.hdSearch||'')}" oninput="APP.hdSearch=this.value;renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId))"></div>
+    <div class="searchrow">
+      <div class="field" style="margin:0;flex:1"><input id="hdSearch" placeholder="Tìm theo tên · CCCD · SĐT" value="${esc(APP.hdSearch||'')}" oninput="APP.hdSearch=this.value;renderContractTable(document.getElementById('hdBody'),STORE.house(APP.houseId))"></div>
+      <button class="iact excel" title="Xuất danh sách cư dân ra Excel" aria-label="Xuất danh sách cư dân ra Excel" onclick="exportResidentsXlsx()"><i data-lucide="file-spreadsheet"></i></button>
+    </div>
     <div id="hdBody"></div>
     <button class="fab" title="Thêm hợp đồng" aria-label="Thêm hợp đồng" onclick="chooseContractType()"><i data-lucide="plus"></i></button>`;
   renderContractTable($('#hdBody',c),h);
@@ -2656,11 +2662,65 @@ async function exportContractPdf(ctId){
       if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{await navigator.share({files:[file],title:'Hợp đồng thuê phòng'});}catch(e){}
       }else{
-        const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+        const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;
+        document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
         toast('Đã tải PDF (thiết bị không hỗ trợ chia sẻ trực tiếp)','ok');
       }
     });
   }catch(e){toast('Không tạo được PDF','err');}
+}
+
+/* ============================================================ XUẤT DANH SÁCH CƯ DÂN (EXCEL) ============================================================ */
+function ensureXlsx(){
+  if(window.XLSX)return Promise.resolve();
+  return loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js')
+    .then(()=>{ if(!window.XLSX)throw new Error('xlsx'); });
+}
+/* Danh sách cư dân đang ở của một nhà, sắp theo số phòng rồi theo tên */
+function residentRows(h){
+  const natCmp=(a,b)=>String(a||'').localeCompare(String(b||''),'vi',{numeric:true,sensitivity:'base'});
+  const roomName=(id)=>{const r=(h.rooms||[]).find(x=>x.id===id);return r?r.name:'(phòng đã xoá)';};
+  const out=[];
+  (h.contracts||[]).forEach(ct=>{
+    if(isEnded(ct))return;
+    const custs=ct.type==='KTX'?(ct.customer?[ct.customer]:[]):(ct.customers||[]);
+    custs.forEach(c=>{ if(!(c&&(c.name||'').trim()))return;
+      out.push({name:(c.name||'').trim(),room:roomName(ct.roomId),cccd:(c.cccd||'').trim(),
+        dob:isoToDmy(c.dob||''),phone:(c.phone||'').trim(),bienso:(c.bienso||'').trim()}); });
+  });
+  out.sort((a,b)=>natCmp(a.room,b.room)||natCmp(a.name,b.name));
+  return out;
+}
+async function exportResidentsXlsx(){
+  const h=STORE.house(APP.houseId); if(!h){toast('Chưa chọn nhà','err');return;}
+  const list=residentRows(h);
+  if(!list.length){toast('Nhà này chưa có cư dân nào','err');return;}
+  toast('Đang tạo file Excel…');
+  try{ await ensureXlsx(); }catch(e){ toast('Cần kết nối mạng để tạo file Excel','err'); return; }
+  try{
+    const head=['STT','Họ và tên','Số phòng','CCCD','Ngày sinh','SĐT','Biển số xe'];
+    const aoa=[head].concat(list.map((r,i)=>[i+1,r.name,r.room,r.cccd,r.dob,r.phone,r.bienso]));
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:5},{wch:26},{wch:10},{wch:16},{wch:12},{wch:13},{wch:13}];
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:list.length,c:head.length-1}})};
+    ws['!freeze']={xSplit:'0',ySplit:'1'};
+    const wb=XLSX.utils.book_new();
+    const sheetName=('Cư dân '+(h.name||'')).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31).trim()||'Cư dân';
+    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const t=new Date();const pad=n=>String(n).padStart(2,'0');
+    const fname='CuDan_'+String(h.name||'Nha').replace(/\s+/g,'_')+'_'+t.getFullYear()+pad(t.getMonth()+1)+pad(t.getDate())+'.xlsx';
+    const file=new File([blob],fname,{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'Danh sách cư dân '+(h.name||'')}); return; }
+      catch(e){ if(e&&e.name==='AbortError')return; }
+    }
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();a.remove();      /* phải nằm trong trang thì tên file mới được giữ */
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast('Đã tải file Excel ('+list.length+' cư dân)','ok');
+  }catch(e){ console.warn('xlsx',e); toast('Không tạo được file Excel','err'); }
 }
 
 /* ============================================================ GOOGLE SYNC ============================================================ */
